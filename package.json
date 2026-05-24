@@ -1,11 +1,16 @@
 {
-  "name": "platform",
+  "name": "armoury",
   "version": "0.1.0",
   "private": true,
-  "description": "TypeScript + AWS platform template",
+  "description": "Digital equipment checklist system. OGP Armoury-inspired portfolio app.",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "typecheck": "echo 'Template has no app source. Apps add their own typecheck script.'",
-    "lint": "echo 'Template has no app source. Apps add their own lint script.'",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -1,55 +1,101 @@
-# platform
+# Armoury
 
-TypeScript + AWS platform template. CI/CD, IaC, security, governance. Ready to ship apps on.
+Digital equipment checklist system. OGP Armoury-inspired portfolio app, built on the `elleskay/platform` template.
 
-## What this is
+## What it does
 
-A platform-layer starting point for shipping production apps. Contains only what is identical across every app: CI/CD workflows, infrastructure-as-code base, security policy, dependency hygiene, repo conventions.
+- Admins create checklist templates (e.g. "Fire Truck Daily Check") with items of three kinds: yes/no, text, number.
+- Templates are assigned to teams (FRS, ICA, SPS, hospital).
+- Officers see their team's checklists and submit responses, optionally flagging issues per item.
+- A dashboard shows compliance rate, recent submissions, open issues, and per-team breakdown.
 
-It does not contain app code (no web framework, no DB schema, no UI library). Pick those per app.
+## Stack
 
-## What's inside
-
-| Area | Where |
+| Layer | Tech |
 |---|---|
-| CI (typecheck, lint, build) | `.github/workflows/ci.yml` |
-| Security scanning (CodeQL, secret scan) | `.github/workflows/security.yml` |
-| Deploy pipeline skeleton | `.github/workflows/deploy.yml.template` |
-| Dependency updates | `.github/dependabot.yml` |
-| AWS CDK base (VPC, IAM, ECR, Secrets, RDS module) | `infra/cdk/base/` |
-| Setup checklist | `docs/SETUP.md` |
-| Security policy | `SECURITY.md` |
-| Secure dev lifecycle docs | `docs/SSDLC.md` |
-| Deploy guide | `docs/DEPLOY.md` |
-| App variant guides | `docs/variants/` |
-| TS/ESLint/Prettier base configs | root |
-| Conventional commits | `commitlint.config.mjs` |
+| Framework | Next.js 16 (App Router) + React 19 + TypeScript |
+| Styling | Tailwind v4 |
+| Database | PostgreSQL via Drizzle ORM |
+| Auth | Auth.js v5 (Credentials provider, JWT sessions, role-based middleware) |
+| Validation | Zod on every server action |
+| Infra | AWS CDK: RDS Postgres + ECS Fargate behind ALB, image from platform ECR |
+| CI | GitHub Actions: typecheck, lint, build, CodeQL, gitleaks, npm audit |
 
-## How to use
+Built on the platform template at https://github.com/elleskay/platform.
+
+## Local development
 
 ```bash
-gh repo create my-app --template <you>/platform --clone
-cd my-app
-# add your app: npx create-next-app apps/web, or NestJS, or whatever fits
-# wire it to the existing CI + CDK base
+# 1. Install deps
+npm install
+
+# 2. Start Postgres (or point DATABASE_URL elsewhere)
+docker run --name armoury-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=armoury -p 5432:5432 -d postgres:16
+
+# 3. Configure env
+cp apps/web/.env.example apps/web/.env.local
+# Edit DATABASE_URL and AUTH_SECRET
+
+# 4. Migrate and seed
+cd apps/web
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+
+# 5. Run
+npm run dev
 ```
 
-Read `docs/SETUP.md` for the full checklist.
+Visit http://localhost:3000 and sign in as `admin@armoury.test` or `officer@armoury.test` (password: `password123`).
 
-## App variants
+## Architecture
 
-Per-app stack guidance lives in `docs/variants/`:
+```
+armoury/
+├── apps/web/              # Next.js app (frontend + API routes)
+│   ├── app/               # App Router pages and routes
+│   │   ├── (app)/         # Authenticated pages (layout enforces session)
+│   │   │   ├── admin/     # Admin only routes
+│   │   │   ├── officer/   # Officer routes
+│   │   │   └── dashboard/
+│   │   ├── login/
+│   │   └── api/
+│   ├── db/                # Drizzle schema, client, migrate, seed
+│   ├── lib/               # Session helpers
+│   ├── auth.ts            # NextAuth config (with adapter)
+│   ├── auth.config.ts     # Edge-safe NextAuth config for middleware
+│   ├── middleware.ts      # Route protection
+│   └── Dockerfile         # Production container
+├── infra/cdk/
+│   ├── base/              # From platform template: VPC, IAM, ECR, Secrets
+│   └── armoury/           # App-specific: RDS Postgres + ECS Fargate
+└── .github/workflows/     # From platform template
+```
 
-- `default-nextjs.md` for Next.js + Postgres apps
-- `nestjs-api.md` for apps that need a separate NestJS API
-- `ai-native.md` for apps with LLM tooling (MCP, model gateway)
+## Security
 
-## Layers
+Inherits the platform template's controls:
 
-This template is the **platform layer**. Two more layers live outside:
+- Strict security headers (HSTS, X-Frame-Options DENY, X-Content-Type-Options nosniff, Permissions-Policy)
+- Input validation via Zod on every server action
+- Bcrypt password hashing
+- JWT sessions (no DB session table to leak)
+- Dependency scanning via Dependabot
+- Code scanning via CodeQL
+- Secret scanning via gitleaks
 
-- **Shared layer:** packages reused across some apps (design tokens, auth helpers). Extract once 2+ apps duplicate the same code.
-- **App layer:** product-specific code in each app's own repo.
+See `docs/SSDLC.md` for the full secure-development inventory.
+
+## Deploy
+
+This app deploys to AWS via CDK. The platform base stacks (`PlatformNetwork`, `PlatformRegistry`, `PlatformSecrets`) must be deployed first.
+
+```bash
+cd infra/cdk/base && npm ci && npx cdk deploy --all
+cd ../armoury && npm ci && npx cdk deploy --all
+```
+
+Then push a container image to the platform ECR repository tagged `armoury-latest`. See `infra/cdk/armoury/README.md` for the build/push commands.
 
 ## License
 
