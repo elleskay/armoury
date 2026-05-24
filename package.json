@@ -2,7 +2,7 @@
   "name": "armoury",
   "version": "0.1.0",
   "private": true,
-  "description": "Digital equipment checklist system. OGP Armoury-inspired portfolio app.",
+  "description": "Digital equipment checklist system for frontline teams. Built on the elleskay/platform template.",
   "workspaces": [
     "apps/*"
   ],

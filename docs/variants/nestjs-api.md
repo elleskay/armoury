@@ -1,6 +1,6 @@
 # Variant: NestJS API
 
-Use this when the app needs a separate backend service. Covers OGP roles for ScamShield, HealthTech, and SE Manager (ScamShield).
+Use this when the app needs a separate backend service. Good for apps with heavy server-side logic, websockets, ML pipelines, or strict separation between web and API tiers.
 
 ## Stack
 
@@ -63,9 +63,9 @@ Two CDK stacks:
 - `infra/cdk/web/` — CloudFront + S3 or Lambda for Next.js
 - `infra/cdk/api/` — ECS Fargate service for NestJS, ALB, target group, RDS Postgres
 
-## OpenSearch (ScamShield only)
+## OpenSearch (optional)
 
-If building ScamShield-style apps:
+If the app needs full-text search or log/event indexing:
 
 ```bash
 cd apps/api
@@ -73,7 +73,3 @@ npm install @nestjs/elasticsearch @opensearch-project/opensearch
 ```
 
 Add `infra/cdk/opensearch/` stack with an OpenSearch domain.
-
-## Maps to OGP roles
-
-ScamShield (Senior + Manager), HealthTech (Senior/Lead + Lead Technical Lead Manager).

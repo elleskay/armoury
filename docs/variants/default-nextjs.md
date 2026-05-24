@@ -1,6 +1,6 @@
 # Variant: Default Next.js
 
-Use this for most apps. Covers the OGP listings that ask for TypeScript, React, Next.js, Postgres, AWS.
+Use this for most apps. The default full-stack web app pattern: Next.js on AWS with managed Postgres.
 
 ## Stack
 
@@ -66,6 +66,3 @@ Add an app-specific CDK stack at `infra/cdk/web/` that:
 - Provisions an RDS Postgres instance (or uses shared one)
 - Provisions the deploy target (Lambda + CloudFront, or ECS Fargate behind ALB)
 
-## Maps to OGP roles
-
-ActiveSG, KampungSpirit, NTES, SGC, Armoury, generic SWE, Senior/Lead SWE.
