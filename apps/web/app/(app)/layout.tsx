@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -38,19 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="text-gray-600">
               {user.name} ({user.role})
             </span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
-              <button
-                type="submit"
-                className="rounded-md border border-gray-300 px-3 py-1 text-gray-700 hover:bg-gray-100"
-              >
-                Sign out
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </div>
       </header>
