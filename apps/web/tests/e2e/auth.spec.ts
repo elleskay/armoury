@@ -30,7 +30,8 @@ test("[ARM-AUTH-004] Admin can access /officer/* routes", async ({ page }) => {
 
 test("[ARM-AUTH-005] Session persists across page reloads", async ({ page }) => {
   await signInAsOfficer(page);
-  await expect(page).toHaveURL(/\/officer/);
+  await page.goto("/officer");
+  await expect(page.getByRole("heading", { name: /My checklists/i })).toBeVisible();
   await page.reload();
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: /My checklists/i })).toBeVisible();
