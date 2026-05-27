@@ -96,6 +96,96 @@ test("[ARM-TEMPLATES-004] Draft templates are not visible to officers", async ({
   void context;
 });
 
+test("[ARM-TEMPLATES-010] Admin can edit a published template in-place", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
+  const originalName = `Edit-target ${Date.now()}`;
+  await page.getByLabel("Name", { exact: true }).fill(originalName);
+  await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
+  await page.getByRole("button", { name: /Create template/i }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+
+  // Open the Edit page for the new row
+  const row = page.getByRole("row", { name: new RegExp(originalName) });
+  await row.getByRole("link", { name: new RegExp(`Edit ${originalName}`) }).click();
+  await expect(page).toHaveURL(/\/admin\/templates\/[0-9a-f-]+\/edit/);
+  await expect(
+    page.getByRole("heading", { name: new RegExp(`Edit:.*${originalName.split(" ")[0]}`) }),
+  ).toBeVisible();
+
+  // Change the name and save
+  const updatedName = `${originalName} (edited)`;
+  await page.getByLabel("Name", { exact: true }).fill(updatedName);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+  await expect(page.getByText(updatedName)).toBeVisible();
+});
+
+test("[ARM-TEMPLATES-007] Admin can archive a template", async ({ page }) => {
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
+  const uniqueName = `Archive-target ${Date.now()}`;
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
+  await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
+  await page.getByRole("button", { name: /Create template/i }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+
+  // Archive button is in the row for the new template
+  const row = page.getByRole("row", { name: new RegExp(uniqueName) });
+  await row.getByRole("button", { name: new RegExp(`Archive ${uniqueName}`) }).click();
+
+  // Status badge becomes Archived
+  await expect(row).toContainText(/Archived/i);
+});
+
+test("[ARM-TEMPLATES-008] Archived templates are not visible to officers", async ({
+  page,
+}) => {
+  // Create a new template as admin
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
+  const uniqueName = `Hide-from-officer ${Date.now()}`;
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
+  // Default team is "All teams" so officer can see it pre-archive
+  await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
+  await page.getByRole("button", { name: /Create template/i }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+
+  // Officer can see the template before archiving
+  await signOut(page);
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await expect(page.getByText(uniqueName)).toBeVisible();
+
+  // Admin archives it
+  await signOut(page);
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates");
+  const row = page.getByRole("row", { name: new RegExp(uniqueName) });
+  await row.getByRole("button", { name: new RegExp(`Archive ${uniqueName}`) }).click();
+  await expect(row).toContainText(/Archived/i);
+
+  // Officer can no longer see it
+  await signOut(page);
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await expect(page.getByText(uniqueName)).not.toBeVisible();
+});
+
 test("[ARM-TEAMS-003] Templates can be unassigned (visible across teams)", async ({
   page,
 }) => {

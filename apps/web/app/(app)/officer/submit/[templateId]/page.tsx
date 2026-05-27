@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ChecklistSearch } from "./ChecklistSearch";
 
 export default async function SubmitPage({
   params,
@@ -52,6 +53,7 @@ export default async function SubmitPage({
         <input type="hidden" name="templateId" value={template.id} />
         <Card>
           <CardContent className="space-y-6 p-6">
+            <ChecklistSearch labels={items.map((it) => it.label)}>
             {items.map((item, idx) => (
               <div key={item.id} className="space-y-2">
                 <div className="flex items-start justify-between gap-4">
@@ -127,6 +129,7 @@ export default async function SubmitPage({
                 />
               </div>
             ))}
+            </ChecklistSearch>
           </CardContent>
         </Card>
 

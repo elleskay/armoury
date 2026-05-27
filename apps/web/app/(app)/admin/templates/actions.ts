@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db/client";
@@ -107,4 +108,90 @@ export async function createTemplate(formData: FormData) {
 export async function listTeams() {
   await requireAdmin();
   return db.select().from(teams).orderBy(teams.name);
+}
+
+const templateIdSchema = z.object({ templateId: z.string().uuid() });
+
+export async function archiveTemplate(formData: FormData) {
+  await requireAdmin();
+  const parsed = templateIdSchema.safeParse({
+    templateId: formData.get("templateId"),
+  });
+  if (!parsed.success) throw new Error("Invalid template id");
+
+  await db
+    .update(templates)
+    .set({ archivedAt: new Date() })
+    .where(eq(templates.id, parsed.data.templateId));
+
+  revalidatePath("/admin/templates");
+  revalidatePath("/officer");
+}
+
+const updateTemplateSchema = z.object({
+  templateId: z.string().uuid(),
+  name: z.string().min(3).max(200),
+  description: z.string().max(2000).optional(),
+  teamId: z.string().uuid().optional(),
+  status: z.enum(["draft", "published"]),
+  frequency: z.enum(["daily", "twice_daily", "weekly", "open"]),
+  shiftWindow: z.enum(["am", "pm", "night", "any"]),
+});
+
+export async function updateTemplate(formData: FormData) {
+  await requireAdmin();
+
+  const teamIdRaw = formData.get("teamId");
+  const teamIdNormalized =
+    teamIdRaw && teamIdRaw !== "" && teamIdRaw !== "__all__"
+      ? teamIdRaw
+      : undefined;
+
+  const parsed = updateTemplateSchema.safeParse({
+    templateId: formData.get("templateId"),
+    name: formData.get("name"),
+    description: formData.get("description") || undefined,
+    teamId: teamIdNormalized,
+    status: formData.get("status") ?? "published",
+    frequency: formData.get("frequency") ?? "open",
+    shiftWindow: formData.get("shiftWindow") ?? "any",
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid input: " + parsed.error.message);
+  }
+  const data = parsed.data;
+
+  await db
+    .update(templates)
+    .set({
+      name: data.name,
+      description: data.description ?? null,
+      teamId: data.teamId ?? null,
+      status: data.status,
+      frequency: data.frequency,
+      shiftWindow: data.shiftWindow,
+      updatedAt: new Date(),
+    })
+    .where(eq(templates.id, data.templateId));
+
+  revalidatePath("/admin/templates");
+  revalidatePath("/officer");
+  redirect("/admin/templates");
+}
+
+export async function unarchiveTemplate(formData: FormData) {
+  await requireAdmin();
+  const parsed = templateIdSchema.safeParse({
+    templateId: formData.get("templateId"),
+  });
+  if (!parsed.success) throw new Error("Invalid template id");
+
+  await db
+    .update(templates)
+    .set({ archivedAt: null })
+    .where(eq(templates.id, parsed.data.templateId));
+
+  revalidatePath("/admin/templates");
+  revalidatePath("/officer");
 }

@@ -69,6 +69,27 @@ test("[ARM-ITEMS-006] Required items show an asterisk indicator", async ({
   await expect(page.getByText("*", { exact: true }).first()).toBeVisible();
 });
 
+test("[ARM-ITEMS-010] Officer can search within long checklists", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  const search = page.getByRole("searchbox", { name: /Search items/i });
+  await expect(search).toBeVisible();
+
+  // Tyres and Hose items are visible by default
+  await expect(page.getByText(/Tyres in good condition/)).toBeVisible();
+  await expect(page.getByText(/Hose connections secure/)).toBeVisible();
+
+  // Type Tyre, only Tyres remains
+  await search.fill("Tyre");
+  await expect(page.getByText(/Tyres in good condition/)).toBeVisible();
+  await expect(page.getByText(/Hose connections secure/)).not.toBeVisible();
+
+  // Clear, everything back
+  await search.fill("");
+  await expect(page.getByText(/Hose connections secure/)).toBeVisible();
+});
+
 test("[ARM-ITEMS-007] Items render in position order", async ({ page }) => {
   await openFireTruckSubmit(page);
   const positions = await page.locator("text=/^\\d+\\.$/").allTextContents();

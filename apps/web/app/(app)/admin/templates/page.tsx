@@ -1,10 +1,21 @@
 import Link from "next/link";
-import { desc, eq, isNull } from "drizzle-orm";
-import { ClipboardList, Clock, Plus } from "lucide-react";
+import { desc, eq } from "drizzle-orm";
+import {
+  Archive,
+  ArchiveRestore,
+  ClipboardList,
+  Clock,
+  Pencil,
+  Plus,
+} from "lucide-react";
 
 import { db } from "@/db/client";
 import { templates, teams, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
+import {
+  archiveTemplate,
+  unarchiveTemplate,
+} from "./actions";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -47,6 +58,7 @@ export default async function TemplatesPage() {
       frequency: templates.frequency,
       shiftWindow: templates.shiftWindow,
       createdAt: templates.createdAt,
+      archivedAt: templates.archivedAt,
       teamName: teams.name,
       teamAgency: teams.agency,
       createdByName: users.name,
@@ -54,7 +66,6 @@ export default async function TemplatesPage() {
     .from(templates)
     .leftJoin(teams, eq(templates.teamId, teams.id))
     .leftJoin(users, eq(templates.createdById, users.id))
-    .where(isNull(templates.archivedAt))
     .orderBy(desc(templates.createdAt));
 
   return (
@@ -96,11 +107,12 @@ export default async function TemplatesPage() {
                 <TableHead>Schedule</TableHead>
                 <TableHead>Team</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className={row.archivedAt ? "opacity-60" : undefined}>
                   <TableCell>
                     <div className="font-medium">{row.name}</div>
                     {row.description && (
@@ -110,7 +122,9 @@ export default async function TemplatesPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {row.status === "published" ? (
+                    {row.archivedAt ? (
+                      <Badge variant="outline">Archived</Badge>
+                    ) : row.status === "published" ? (
                       <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                         Published
                       </Badge>
@@ -137,6 +151,50 @@ export default async function TemplatesPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {row.createdAt.toISOString().slice(0, 10)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {!row.archivedAt && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Edit ${row.name}`}
+                        >
+                          <Link href={`/admin/templates/${row.id}/edit`}>
+                            <Pencil className="mr-1 h-3.5 w-3.5" />
+                            Edit
+                          </Link>
+                        </Button>
+                      )}
+                    {row.archivedAt ? (
+                      <form action={unarchiveTemplate}>
+                        <input type="hidden" name="templateId" value={row.id} />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Unarchive ${row.name}`}
+                        >
+                          <ArchiveRestore className="mr-1 h-3.5 w-3.5" />
+                          Unarchive
+                        </Button>
+                      </form>
+                    ) : (
+                      <form action={archiveTemplate}>
+                        <input type="hidden" name="templateId" value={row.id} />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Archive ${row.name}`}
+                        >
+                          <Archive className="mr-1 h-3.5 w-3.5" />
+                          Archive
+                        </Button>
+                      </form>
+                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
