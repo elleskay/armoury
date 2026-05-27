@@ -1,0 +1,915 @@
+app: armoury
+version: 1
+
+# Armoury: digital equipment checklists for frontline operational teams.
+# Replaces paper checks with structured submissions, scoring, issue tracking,
+# and team dashboards. Each requirement is uniquely identified and must be
+# covered by a passing specTest() before deploy.
+#
+# IDs are stable. Removing or renaming a requirement is a breaking change.
+
+requirements:
+
+  # ============================================================
+  # ARM-AUTH: authentication and session
+  # ============================================================
+
+  - id: ARM-AUTH-001
+    title: Unauthenticated GET /admin/* redirects to /login
+    category: security
+    severity: critical
+    given: User has no active session
+    when: User GETs /admin/templates
+    then: Response redirects to /login
+    tags: [auth, middleware]
+
+  - id: ARM-AUTH-002
+    title: Unauthenticated GET /officer/* redirects to /login
+    category: security
+    severity: critical
+    given: User has no active session
+    when: User GETs /officer
+    then: Response redirects to /login
+    tags: [auth, middleware]
+
+  - id: ARM-AUTH-003
+    title: Officer GET /admin/* is denied
+    category: security
+    severity: critical
+    given: User is signed in as officer
+    when: They GET /admin/templates
+    then: They are redirected away from /admin or shown a 403 page
+    tags: [auth, rbac]
+
+  - id: ARM-AUTH-004
+    title: Admin can access /officer/* routes
+    category: security
+    severity: medium
+    given: User is signed in as admin
+    when: They GET /officer
+    then: Page renders without redirect
+    tags: [auth, rbac]
+
+  - id: ARM-AUTH-005
+    title: Session persists across page reloads
+    category: security
+    severity: high
+    given: User has signed in
+    when: They reload the browser
+    then: They remain signed in (no /login redirect)
+    tags: [auth, session]
+
+  - id: ARM-AUTH-006
+    title: Sign out clears session and redirects to /login
+    category: security
+    severity: high
+    given: User is signed in
+    when: They click Sign out
+    then: Their session is cleared and they land on /login
+    tags: [auth, session]
+
+  - id: ARM-AUTH-007
+    title: Invalid credentials show an error and do not sign in
+    category: security
+    severity: high
+    given: User on /login
+    when: They submit a wrong password
+    then: They remain on /login with an error message, no session created
+    tags: [auth, login]
+
+  # ============================================================
+  # ARM-RBAC: team scoping
+  # ============================================================
+
+  - id: ARM-RBAC-001
+    title: Officer sees only templates assigned to their team
+    category: security
+    severity: critical
+    given: Officer belongs to team A, templates exist for teams A and B
+    when: They GET /officer
+    then: Only team-A templates and team-unassigned templates appear
+    tags: [rbac, templates]
+
+  - id: ARM-RBAC-002
+    title: Officer cannot submit a template owned by another team
+    category: security
+    severity: critical
+    given: Officer belongs to team A, template T belongs to team B
+    when: They POST to submitChecklist with T.id
+    then: The server rejects the submission (no row inserted, error returned)
+    tags: [rbac, submissions]
+
+  - id: ARM-RBAC-003
+    title: Officer cannot reach admin-only server actions
+    category: security
+    severity: critical
+    given: Officer is signed in
+    when: They invoke createTemplate or archiveTemplate server action
+    then: The action throws an authorization error
+    tags: [rbac, server-actions]
+
+  - id: ARM-RBAC-004
+    title: Admin sees all teams' templates
+    category: security
+    severity: medium
+    given: Admin is signed in
+    when: They GET /admin/templates
+    then: Templates from every team are listed
+    tags: [rbac, templates]
+
+  # ============================================================
+  # ARM-TEAMS: team model
+  # ============================================================
+
+  - id: ARM-TEAMS-001
+    title: Teams have an agency tag
+    category: data
+    severity: medium
+    given: Database schema
+    when: A team is created
+    then: It must have agency in (FRS, ICA, SPS, hospital)
+    tags: [teams, schema]
+
+  - id: ARM-TEAMS-002
+    title: Officer is assigned to at most one team
+    category: data
+    severity: high
+    given: Users table
+    when: A user is created
+    then: teamId is nullable (admin) or references a single team (officer)
+    tags: [teams, users, schema]
+
+  - id: ARM-TEAMS-003
+    title: Templates can be unassigned (visible to all teams)
+    category: functional
+    severity: medium
+    given: A template with teamId=null exists
+    when: An officer of any team views /officer
+    then: That template appears in their list
+    tags: [teams, templates]
+
+  # ============================================================
+  # ARM-TEMPLATES: template management
+  # ============================================================
+
+  - id: ARM-TEMPLATES-001
+    title: Admin can create a template with required fields
+    category: functional
+    severity: critical
+    given: Admin on /admin/templates/new
+    when: They submit name, status, frequency, shiftWindow, and at least one item
+    then: A new template row is created and they are redirected to the list
+    tags: [templates, create]
+
+  - id: ARM-TEMPLATES-002
+    title: New template defaults to status=published
+    category: data
+    severity: medium
+    given: Admin on the new template form
+    when: They do not change the status select
+    then: The created template has status=published
+    tags: [templates, defaults]
+
+  - id: ARM-TEMPLATES-003
+    title: New template defaults to frequency=open and shift=any
+    category: data
+    severity: medium
+    given: Admin on the new template form
+    when: They do not change the schedule selects
+    then: The template is frequency=open, shiftWindow=any
+    tags: [templates, defaults]
+
+  - id: ARM-TEMPLATES-004
+    title: Draft templates are not visible to officers
+    category: functional
+    severity: high
+    given: A template with status=draft assigned to team A
+    when: An officer of team A GETs /officer
+    then: The draft template does not appear
+    tags: [templates, draft]
+
+  - id: ARM-TEMPLATES-005
+    title: Admin templates page lists every template
+    category: functional
+    severity: medium
+    given: Multiple templates across teams
+    when: Admin GETs /admin/templates
+    then: All templates are listed with status, frequency, shift badges
+    tags: [templates, admin]
+
+  - id: ARM-TEMPLATES-006
+    title: Template badges display schedule
+    category: ui
+    severity: medium
+    given: A template with frequency=daily, shift=am
+    when: It renders in a list (officer or admin)
+    then: Badges read "Daily" and "AM shift"
+    tags: [templates, ui]
+
+  - id: ARM-TEMPLATES-007
+    title: Admin can archive a template
+    category: functional
+    severity: high
+    given: A published template
+    when: Admin sets archivedAt
+    then: Template no longer appears to officers but stays in admin history
+    tags: [templates, archive]
+    notes: Backend field exists; UI to expose this is partial.
+
+  - id: ARM-TEMPLATES-008
+    title: Archived templates are not visible to officers
+    category: functional
+    severity: high
+    given: A template with archivedAt set
+    when: An officer of the owning team GETs /officer
+    then: The archived template does not appear
+    tags: [templates, archive]
+
+  - id: ARM-TEMPLATES-009
+    title: Template edits preserve historical question wording on past submissions
+    category: data
+    severity: high
+    given: A template with an item labeled X, plus a past submission
+    when: The item label is edited to Y
+    then: Past submission still shows X in its detail view
+    tags: [templates, versioning, unbuilt]
+    notes: Requires versioned template_items snapshot per submission. Not yet built.
+
+  - id: ARM-TEMPLATES-010
+    title: Admin can edit a published template in-place
+    category: functional
+    severity: medium
+    given: A published template
+    when: Admin edits its name, description, items, or schedule
+    then: Changes persist without taking the template offline
+    tags: [templates, edit, unbuilt]
+    notes: Only create is currently exposed; edit UI not built.
+
+  # ============================================================
+  # ARM-ITEMS: template items (input kinds)
+  # ============================================================
+
+  - id: ARM-ITEMS-001
+    title: Item kind boolean renders Yes/No radios
+    category: ui
+    severity: critical
+    given: A template item with kind=boolean
+    when: The submit page renders
+    then: Two radios labeled Yes and No are visible, Yes is checked by default
+    tags: [items, boolean]
+
+  - id: ARM-ITEMS-002
+    title: Item kind number renders a number input
+    category: ui
+    severity: critical
+    given: A template item with kind=number
+    when: The submit page renders
+    then: An <input type="number"> is rendered for that item
+    tags: [items, number]
+
+  - id: ARM-ITEMS-003
+    title: Item kind text renders a text input
+    category: ui
+    severity: high
+    given: A template item with kind=text
+    when: The submit page renders
+    then: An <input type="text"> is rendered for that item
+    tags: [items, text]
+
+  - id: ARM-ITEMS-004
+    title: Item kind dropdown renders a combobox with item.options
+    category: ui
+    severity: critical
+    given: A template item with kind=dropdown and options=[a,b,c]
+    when: The submit page renders
+    then: A combobox is visible, clicking it shows exactly three options matching a,b,c
+    tags: [items, dropdown]
+    notes: This requirement exists because the dropdown was historically rendered as a text input.
+
+  - id: ARM-ITEMS-005
+    title: Item kind date_time renders a datetime-local input
+    category: ui
+    severity: critical
+    given: A template item with kind=date_time
+    when: The submit page renders
+    then: An <input type="datetime-local"> is rendered for that item
+    tags: [items, date_time]
+
+  - id: ARM-ITEMS-006
+    title: Required items show an asterisk indicator
+    category: ui
+    severity: medium
+    given: A template item with required=true
+    when: The submit page renders
+    then: An asterisk is visible next to the item label
+    tags: [items, required]
+
+  - id: ARM-ITEMS-007
+    title: Items render in position order
+    category: ui
+    severity: medium
+    given: A template with items at positions 1..N
+    when: The submit page renders
+    then: Items appear in ascending position order
+    tags: [items, ordering]
+
+  - id: ARM-ITEMS-008
+    title: Item kind photo upload accepts image files
+    category: functional
+    severity: medium
+    given: A template item with kind=photo
+    when: The submit page renders
+    then: A file input with accept=image/* and a camera capture option is shown
+    tags: [items, photo, unbuilt]
+    notes: Photo upload not yet implemented.
+
+  - id: ARM-ITEMS-009
+    title: ItemSet allows Select All across grouped items
+    category: ui
+    severity: low
+    given: A template with an item-set group
+    when: The submit page renders the group header
+    then: A "Select all" control toggles every boolean item in the group
+    tags: [items, itemset, unbuilt]
+
+  - id: ARM-ITEMS-010
+    title: Officer can search within long checklists
+    category: ui
+    severity: low
+    given: A template with 50+ items
+    when: The submit page renders
+    then: A search box filters items by label substring as the officer types
+    tags: [items, search, unbuilt]
+
+  # ============================================================
+  # ARM-SCHED: scheduling and shift windows
+  # ============================================================
+
+  - id: ARM-SCHED-001
+    title: Frequency enum covers daily, twice_daily, weekly, open
+    category: data
+    severity: high
+    given: Templates table schema
+    when: A template is created
+    then: frequency must be one of (daily, twice_daily, weekly, open)
+    tags: [scheduling, schema]
+
+  - id: ARM-SCHED-002
+    title: Shift window enum covers am, pm, night, any
+    category: data
+    severity: high
+    given: Templates table schema
+    when: A template is created
+    then: shiftWindow must be one of (am, pm, night, any)
+    tags: [scheduling, schema]
+
+  - id: ARM-SCHED-003
+    title: Frequency=open templates have no scheduled deadline
+    category: functional
+    severity: medium
+    given: A template with frequency=open
+    when: An officer views their checklists
+    then: It is available for submission any time, with no overdue indicator
+    tags: [scheduling, open]
+
+  - id: ARM-SCHED-004
+    title: Admin can pause and resume a schedule
+    category: functional
+    severity: medium
+    given: A published template with a scheduled frequency
+    when: Admin pauses the schedule
+    then: Officers are not reminded; admin can resume later
+    tags: [scheduling, pause, unbuilt]
+
+  - id: ARM-SCHED-005
+    title: Officer can skip a check for a callsign with reason
+    category: functional
+    severity: medium
+    given: A dual-fleet station with an unavailable callsign
+    when: Officer marks the scheduled check as skipped
+    then: The check is recorded as skipped (not missed) with the reason
+    tags: [scheduling, skip, unbuilt]
+
+  - id: ARM-SCHED-006
+    title: Officer can unskip a previously skipped check
+    category: functional
+    severity: low
+    given: A check marked skipped
+    when: Officer unskips it
+    then: It returns to expected status and can be submitted normally
+    tags: [scheduling, skip, unbuilt]
+
+  - id: ARM-SCHED-007
+    title: Email reminder fires 2 hours before scheduled check deadline
+    category: functional
+    severity: medium
+    given: A scheduled check with a deadline 2h away
+    when: The reminder job runs
+    then: An email is sent to the team admin
+    tags: [scheduling, reminders, unbuilt]
+
+  - id: ARM-SCHED-008
+    title: Past Checks view shows all historical submissions for officer
+    category: functional
+    severity: medium
+    given: Officer has submitted N checklists historically
+    when: They open the Past Checks page
+    then: All N submissions appear with template, date, score
+    tags: [submissions, history, unbuilt]
+    notes: Currently only Recent Submissions on /officer is shown; full Past Checks view not built.
+
+  # ============================================================
+  # ARM-SUBMIT: submission flow
+  # ============================================================
+
+  - id: ARM-SUBMIT-001
+    title: Officer can submit a checklist they have access to
+    category: functional
+    severity: critical
+    given: Officer on /officer/submit/<templateId>
+    when: They fill required items and submit
+    then: A submission row is inserted, redirect to /officer
+    tags: [submissions, happy-path]
+
+  - id: ARM-SUBMIT-002
+    title: Submission persists per-item responses with correct value column
+    category: data
+    severity: critical
+    given: A submitted checklist with mixed item kinds
+    when: Submission is inserted
+    then: Each response row has the matching value_boolean/value_text/value_number/value_date populated
+    tags: [submissions, responses]
+
+  - id: ARM-SUBMIT-003
+    title: After submit, officer is redirected to /officer
+    category: functional
+    severity: medium
+    given: Officer submits a checklist
+    when: Submit action completes
+    then: Browser navigates to /officer
+    tags: [submissions, redirect]
+
+  - id: ARM-SUBMIT-004
+    title: Recent submissions card shows template, item count, and score
+    category: ui
+    severity: high
+    given: Officer has just submitted a checklist
+    when: They land on /officer
+    then: The Recent submissions card lists the new submission with template name, ok/total, and score badge
+    tags: [submissions, ui]
+
+  - id: ARM-SUBMIT-005
+    title: Boolean=No flags the item as not-ok
+    category: functional
+    severity: critical
+    given: A boolean item answered No
+    when: Submission is processed
+    then: Response has hasIssue=true and item contributes 0 to okCount
+    tags: [submissions, scoring]
+
+  - id: ARM-SUBMIT-006
+    title: Required text or dropdown left empty flags the item
+    category: functional
+    severity: high
+    given: A required text or dropdown item with empty value
+    when: Submission is processed
+    then: Response has hasIssue=true and item contributes 0 to okCount
+    tags: [submissions, validation]
+
+  - id: ARM-SUBMIT-007
+    title: Required number left empty or invalid flags the item
+    category: functional
+    severity: high
+    given: A required number item with no or non-numeric value
+    when: Submission is processed
+    then: Response has hasIssue=true and item contributes 0 to okCount
+    tags: [submissions, validation]
+
+  - id: ARM-SUBMIT-008
+    title: Required date_time left empty or invalid flags the item
+    category: functional
+    severity: high
+    given: A required date_time item with no or invalid value
+    when: Submission is processed
+    then: Response has hasIssue=true and item contributes 0 to okCount
+    tags: [submissions, validation]
+
+  - id: ARM-SUBMIT-009
+    title: Officer can attach an optional issue note per item
+    category: functional
+    severity: medium
+    given: Any item on the submit page
+    when: Officer types text into its optional issue note field
+    then: The note is persisted with the response and the item is flagged
+    tags: [submissions, notes]
+
+  - id: ARM-SUBMIT-010
+    title: Non-required items left blank do not flag the item
+    category: functional
+    severity: medium
+    given: An item with required=false and empty value
+    when: Submission is processed
+    then: Response has hasIssue=false and item contributes 1 to okCount
+    tags: [submissions, optional]
+
+  - id: ARM-SUBMIT-011
+    title: Officer can save an interim partial submission
+    category: functional
+    severity: low
+    given: Officer is partway through a long checklist
+    when: They click Save draft
+    then: Progress is persisted and they can resume later
+    tags: [submissions, interim, unbuilt]
+
+  - id: ARM-SUBMIT-012
+    title: Network failure during submit surfaces an error toast
+    category: ui
+    severity: medium
+    given: Submit network request fails
+    when: Officer clicks Submit
+    then: An error toast appears and the form remains intact for retry
+    tags: [submissions, error-handling, unbuilt]
+
+  # ============================================================
+  # ARM-SCORE: scoring math
+  # ============================================================
+
+  - id: ARM-SCORE-001
+    title: Score is round(okCount / itemCount * 100)
+    category: data
+    severity: critical
+    given: A submission with okCount=5 itemCount=6
+    when: Score is computed
+    then: Score equals 83
+    tags: [scoring, math]
+
+  - id: ARM-SCORE-002
+    title: Empty submission (zero items) yields score 100
+    category: data
+    severity: medium
+    given: A template with no items
+    when: It is submitted
+    then: Score equals 100
+    tags: [scoring, edge]
+
+  - id: ARM-SCORE-003
+    title: All-ok submission yields score 100
+    category: data
+    severity: high
+    given: A submission where every item is ok
+    when: Score is computed
+    then: Score equals 100
+    tags: [scoring, boundary]
+
+  - id: ARM-SCORE-004
+    title: All-fail submission yields score 0
+    category: data
+    severity: high
+    given: A submission where every item is flagged
+    when: Score is computed
+    then: Score equals 0
+    tags: [scoring, boundary]
+
+  - id: ARM-SCORE-005
+    title: Score is stored at submission time and not recomputed retroactively
+    category: data
+    severity: high
+    given: A submission already inserted with score=83
+    when: Underlying template items are later edited
+    then: The submission row still reports score=83
+    tags: [scoring, immutability]
+
+  # ============================================================
+  # ARM-ISSUES: issue tracking
+  # ============================================================
+
+  - id: ARM-ISSUES-001
+    title: Flagged item auto-creates an issue with severity=medium
+    category: functional
+    severity: critical
+    given: A submission with a flagged item
+    when: submitChecklist completes
+    then: An issue row exists with severity=medium, status=open, raisedById=officer
+    tags: [issues, auto-create]
+
+  - id: ARM-ISSUES-002
+    title: Auto-created issue uses item label as title and officer note as detail
+    category: data
+    severity: high
+    given: A flagged item with optional note "X"
+    when: submitChecklist completes
+    then: The issue title equals the item label and the issue note equals "X"
+    tags: [issues, auto-create]
+
+  - id: ARM-ISSUES-003
+    title: Auto-created issue is linked to submission, item, team, and officer
+    category: data
+    severity: high
+    given: An auto-created issue from a flagged item
+    when: The issue row is inspected
+    then: submissionId, templateItemId, teamId, raisedById are all populated
+    tags: [issues, data]
+
+  - id: ARM-ISSUES-004
+    title: Officer can raise a standalone issue with title, severity, detail
+    category: functional
+    severity: critical
+    given: Officer on /officer/raise-issue
+    when: They submit a valid title, severity, and detail
+    then: A new issue row is created with no submissionId, raisedById=officer
+    tags: [issues, standalone]
+
+  - id: ARM-ISSUES-005
+    title: Standalone issue severity options include low, medium, high, critical
+    category: ui
+    severity: high
+    given: Officer on /officer/raise-issue
+    when: They open the Severity dropdown
+    then: Exactly the four options low, medium, high, critical appear
+    tags: [issues, ui]
+
+  - id: ARM-ISSUES-006
+    title: Admin sees open and resolved issues separately on /admin/issues
+    category: functional
+    severity: high
+    given: Admin on /admin/issues
+    when: The page renders with mixed open and resolved issues
+    then: Open section lists open issues, Resolved section lists resolved issues
+    tags: [issues, admin]
+
+  - id: ARM-ISSUES-007
+    title: Admin can resolve an open issue with a resolution note
+    category: functional
+    severity: critical
+    given: An open issue
+    when: Admin submits a resolution note via the issue card's form
+    then: The issue moves to status=resolved with resolvedAt and resolution populated
+    tags: [issues, resolve]
+
+  - id: ARM-ISSUES-008
+    title: Resolved issue displays resolution, resolver, and resolved date
+    category: ui
+    severity: medium
+    given: A resolved issue on /admin/issues
+    when: The card renders
+    then: The resolution text and resolved date are visible
+    tags: [issues, ui]
+
+  - id: ARM-ISSUES-009
+    title: Issue severity badge is color-coded
+    category: ui
+    severity: medium
+    given: Issues at each severity level
+    when: They render on /admin/issues
+    then: Critical is destructive red, high is orange, medium is amber, low is slate
+    tags: [issues, ui]
+
+  - id: ARM-ISSUES-010
+    title: Webhook fires when an issue is raised
+    category: functional
+    severity: medium
+    given: A team with webhook_url configured
+    when: An issue is raised for that team
+    then: An HTTP POST is made to the webhook with the issue payload
+    tags: [issues, webhook, unbuilt]
+
+  # ============================================================
+  # ARM-DASHBOARD: dashboard and reporting
+  # ============================================================
+
+  - id: ARM-DASHBOARD-001
+    title: Dashboard shows total submission count
+    category: ui
+    severity: high
+    given: Submissions exist in the database
+    when: User opens /dashboard
+    then: A stat card labeled "Total submissions" shows the correct count
+    tags: [dashboard]
+
+  - id: ARM-DASHBOARD-002
+    title: Dashboard shows last 14 days submission count
+    category: ui
+    severity: medium
+    given: Submissions across the last 30 days
+    when: User opens /dashboard
+    then: A stat card "Last 14 days" shows only submissions submittedAt within 14 days of now
+    tags: [dashboard, rolling-window]
+
+  - id: ARM-DASHBOARD-003
+    title: Dashboard shows average readiness score
+    category: ui
+    severity: high
+    given: Submissions with mixed scores
+    when: User opens /dashboard
+    then: A stat card shows avg(score) as an integer percentage
+    tags: [dashboard, scoring]
+
+  - id: ARM-DASHBOARD-004
+    title: Dashboard shows open issues count with high/critical breakdown
+    category: ui
+    severity: high
+    given: Open issues with severities medium and critical
+    when: User opens /dashboard
+    then: A stat card shows total open and a sub-hint with high+critical count
+    tags: [dashboard, issues]
+
+  - id: ARM-DASHBOARD-005
+    title: Dashboard chart shows last 14 days submissions split by ok vs issues
+    category: ui
+    severity: medium
+    given: Submissions in the last 14 days with mixed outcomes
+    when: User opens /dashboard
+    then: A stacked chart shows daily counts of perfect (100) vs imperfect submissions
+    tags: [dashboard, chart]
+
+  - id: ARM-DASHBOARD-006
+    title: Per-template avg score badge is color-coded
+    category: ui
+    severity: medium
+    given: Templates with various average scores
+    when: The per-template table renders
+    then: ≥90 is green, 80-89 yellow, <80 destructive red
+    tags: [dashboard, scoring, ui]
+
+  - id: ARM-DASHBOARD-007
+    title: Dashboard lists most recent open issues with severity color
+    category: ui
+    severity: medium
+    given: Multiple open issues
+    when: Dashboard renders
+    then: The Open issues panel shows the 6 most recent, with severity-colored icon
+    tags: [dashboard, issues]
+
+  - id: ARM-DASHBOARD-008
+    title: Admin can bulk-export a month of reports as a single download
+    category: functional
+    severity: medium
+    given: Admin on a reports page for a given month
+    when: They click "Export month"
+    then: A single archive is generated with one report per submission for that month
+    tags: [reports, export, unbuilt]
+
+  - id: ARM-DASHBOARD-009
+    title: PDF report includes photo uploads inline
+    category: functional
+    severity: medium
+    given: A submission with photo-kind items
+    when: The PDF report is rendered
+    then: Photos appear inline next to their items
+    tags: [reports, photos, unbuilt]
+
+  - id: ARM-DASHBOARD-010
+    title: Reports preserve the question wording at submission time
+    category: data
+    severity: high
+    given: A past submission and a later edit to the template item label
+    when: The report for the past submission is rendered
+    then: It shows the original question wording, not the current one
+    tags: [reports, versioning, unbuilt]
+
+  - id: ARM-DASHBOARD-011
+    title: Reports are accessible for at least 6 months
+    category: data
+    severity: low
+    given: A submission submitted >30 days ago
+    when: User requests the report
+    then: It is still downloadable
+    tags: [reports, retention, unbuilt]
+
+  - id: ARM-DASHBOARD-012
+    title: Every administrative action is recorded in an audit log
+    category: security
+    severity: medium
+    given: An admin edits a template
+    when: The change is persisted
+    then: An audit_log row is written with actor, action, target, timestamp, before/after
+    tags: [audit, unbuilt]
+
+  # ============================================================
+  # ARM-UI: cross-cutting UI behavior
+  # ============================================================
+
+  - id: ARM-UI-001
+    title: Officer sidebar shows Dashboard, My Checklists, Raise issue
+    category: ui
+    severity: medium
+    given: Officer is signed in
+    when: The sidebar renders
+    then: Links to /dashboard, /officer, /officer/raise-issue are visible in that order
+    tags: [ui, navigation]
+
+  - id: ARM-UI-002
+    title: Admin sidebar shows Dashboard, Templates, Submissions, Issues
+    category: ui
+    severity: medium
+    given: Admin is signed in
+    when: The sidebar renders
+    then: Links to /dashboard, /admin/templates, /admin/submissions, /admin/issues are visible
+    tags: [ui, navigation]
+
+  - id: ARM-UI-003
+    title: Theme toggle switches light and dark and persists
+    category: ui
+    severity: low
+    given: User on any signed-in page
+    when: They click the theme toggle and reload
+    then: The chosen theme is applied on reload
+    tags: [ui, theme]
+
+  - id: ARM-UI-004
+    title: No em dashes in any rendered UI string
+    category: ui
+    severity: low
+    given: Any rendered page
+    when: The DOM is inspected
+    then: No element contains the em-dash character
+    tags: [ui, style]
+
+  - id: ARM-UI-005
+    title: Sign in page shows demo credentials hint
+    category: ui
+    severity: low
+    given: Unauthenticated user on /login
+    when: The page renders
+    then: A hint text shows the demo admin and officer logins
+    tags: [ui, onboarding]
+
+  # ============================================================
+  # ARM-INVENTORY: Pulse inventory module (unbuilt)
+  # ============================================================
+
+  - id: ARM-INVENTORY-001
+    title: Real-time stock level monitoring
+    category: functional
+    severity: medium
+    given: An item in inventory with a stock level
+    when: A transaction adjusts stock
+    then: The displayed level updates in real time
+    tags: [inventory, unbuilt]
+
+  - id: ARM-INVENTORY-002
+    title: Items track expiration date
+    category: data
+    severity: medium
+    given: An inventory item with expiry
+    when: Expiry is within 30 days
+    then: It is flagged in the inventory view
+    tags: [inventory, expiry, unbuilt]
+
+  - id: ARM-INVENTORY-003
+    title: Stock-take date is recorded per item
+    category: data
+    severity: low
+    given: A stock-take is recorded
+    when: It completes
+    then: lastStockTakeAt updates on each affected item
+    tags: [inventory, audit, unbuilt]
+
+  - id: ARM-INVENTORY-004
+    title: Inventory transactions can be exported
+    category: functional
+    severity: low
+    given: Inventory transaction history
+    when: Admin requests an export
+    then: A CSV download is produced
+    tags: [inventory, export, unbuilt]
+
+  - id: ARM-INVENTORY-005
+    title: Inventory integrates with an external upstream system
+    category: functional
+    severity: low
+    given: An external inventory feed is configured
+    when: A scheduled job runs
+    then: Levels reconcile against the upstream values
+    tags: [inventory, integration, unbuilt]
+
+  # ============================================================
+  # ARM-PERF: performance budgets (unbuilt as tests)
+  # ============================================================
+
+  - id: ARM-PERF-001
+    title: Officer home page renders within 1.5s P50 on cold visit
+    category: functional
+    severity: low
+    given: A signed-in officer
+    when: They GET /officer with cold cache
+    then: P50 time-to-interactive is under 1500ms
+    tags: [performance, unbuilt]
+
+  - id: ARM-PERF-002
+    title: Checklist submit page renders within 1.5s P50
+    category: functional
+    severity: low
+    given: A signed-in officer
+    when: They GET /officer/submit/<id>
+    then: P50 time-to-interactive is under 1500ms
+    tags: [performance, unbuilt]
+
+  - id: ARM-PERF-003
+    title: Dashboard renders within 2.0s P50
+    category: functional
+    severity: low
+    given: A signed-in admin
+    when: They GET /dashboard
+    then: P50 time-to-interactive is under 2000ms
+    tags: [performance, unbuilt]

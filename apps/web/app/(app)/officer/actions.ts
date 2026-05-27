@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { submissions, responses, issues, templateItems, templates } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
+import { computeScore } from "@/lib/score";
 
 const submitSchema = z.object({ templateId: z.string().uuid() });
 
@@ -88,7 +89,7 @@ export async function submitChecklist(formData: FormData) {
     });
   }
 
-  const score = items.length === 0 ? 100 : Math.round((okCount / items.length) * 100);
+  const score = computeScore({ okCount, itemCount: items.length });
 
   const [submission] = await db
     .insert(submissions)
