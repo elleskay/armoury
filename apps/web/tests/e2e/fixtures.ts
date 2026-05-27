@@ -32,17 +32,32 @@ export async function signInAsOfficer(page: Page): Promise<void> {
 }
 
 /**
- * Clears the session by deleting auth cookies. Use this for tests that
- * need to switch users mid-test. Faster and more reliable than driving
- * the UI sign-out flow, which races on the user-menu button appearing.
+ * Signs out by driving the UI sign-out flow. clearCookies() turned out
+ * not to be sufficient to invalidate the Auth.js session in CI: the
+ * session token survives a Playwright clearCookies and goto /login
+ * gets redirected back to /dashboard.
  *
- * Does not navigate. The next signIn() will navigate to /login itself.
- *
- * For tests that specifically verify the UI sign-out behaviour (e.g.
- * ARM-AUTH-006), drive the menu directly rather than calling this.
+ * Waits up to 5 seconds for one of the seeded user-name buttons to
+ * become visible, then clicks the user menu and the Sign out menuitem.
+ * If no button appears, falls back to clearCookies as a last resort.
  */
 export async function signOut(page: Page): Promise<void> {
-  await page.context().clearCookies();
+  const candidates = [/Officer One/, /Officer Two/, /Admin User/, /Nurse Lim/];
+  const userBtn = page
+    .getByRole("button")
+    .filter({ hasText: new RegExp(candidates.map((r) => r.source).join("|")) })
+    .first();
+  try {
+    await userBtn.waitFor({ state: "visible", timeout: 5000 });
+    await userBtn.click();
+    await page
+      .getByRole("menuitem", { name: "Sign out" })
+      .click({ timeout: 5000 });
+    await page.waitForURL(/\/login/, { timeout: 10_000 });
+  } catch {
+    await page.context().clearCookies();
+    await page.goto("/login");
+  }
 }
 
 export const test = base;
