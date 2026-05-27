@@ -1,5 +1,5 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsAdmin, signInAsOfficer } from "./fixtures";
+import { signInAsAdmin, signInAsOfficer, signOut } from "./fixtures";
 
 test("[ARM-TEMPLATES-001] Admin can create a template with required fields", async ({
   page,
@@ -8,7 +8,7 @@ test("[ARM-TEMPLATES-001] Admin can create a template with required fields", asy
   await page.goto("/admin/templates/new");
 
   const uniqueName = `Test Template ${Date.now()}`;
-  await page.getByLabel("Name").fill(uniqueName);
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
 
   await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("First item");
 
@@ -24,7 +24,7 @@ test("[ARM-TEMPLATES-002] New template defaults to status=published", async ({
   await page.goto("/admin/templates/new");
 
   const uniqueName = `Default-published ${Date.now()}`;
-  await page.getByLabel("Name").fill(uniqueName);
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
   await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
 
   await page.getByRole("button", { name: /Create template/i }).click();
@@ -42,7 +42,7 @@ test("[ARM-TEMPLATES-003] New template defaults to frequency=open, shift=any", a
   await page.goto("/admin/templates/new");
 
   const uniqueName = `Default-open-any ${Date.now()}`;
-  await page.getByLabel("Name").fill(uniqueName);
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
   await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
 
   await page.getByRole("button", { name: /Create template/i }).click();
@@ -68,7 +68,7 @@ test("[ARM-TEMPLATES-004] Draft templates are not visible to officers", async ({
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
   const draftName = `Draft-template ${Date.now()}`;
-  await page.getByLabel("Name").fill(draftName);
+  await page.getByLabel("Name", { exact: true }).fill(draftName);
   await page
     .getByRole("combobox", { name: /Status/i })
     .first()
@@ -79,9 +79,7 @@ test("[ARM-TEMPLATES-004] Draft templates are not visible to officers", async ({
   await expect(page).toHaveURL(/\/admin\/templates/);
 
   // Now sign in as officer in a fresh context and verify the draft is hidden
-  await page.getByRole("button", { name: /Admin User/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
-  await expect(page).toHaveURL(/\/login/);
+  await signOut(page);
 
   await signInAsOfficer(page);
   await page.goto("/officer");
@@ -96,7 +94,7 @@ test("[ARM-TEAMS-003] Templates can be unassigned (visible across teams)", async
   await page.goto("/admin/templates/new");
 
   const uniqueName = `Cross-team ${Date.now()}`;
-  await page.getByLabel("Name").fill(uniqueName);
+  await page.getByLabel("Name", { exact: true }).fill(uniqueName);
   await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
   await page.getByRole("button", { name: /Create template/i }).click();
   await expect(page).toHaveURL(/\/admin\/templates/);

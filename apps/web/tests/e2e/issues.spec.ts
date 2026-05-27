@@ -1,5 +1,5 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsAdmin, signInAsOfficer } from "./fixtures";
+import { signInAsAdmin, signInAsOfficer, signOut } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 async function submitFireTruckWithFlaggedTyre(page: Page, note: string) {
@@ -47,8 +47,7 @@ test("[ARM-ISSUES-001] Flagged item auto-creates an open issue", async ({
   await submitFireTruckWithFlaggedTyre(page, marker);
 
   // Sign out, switch to admin
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
   await expect(page.getByText(marker)).toBeVisible();
@@ -61,8 +60,7 @@ test("[ARM-ISSUES-002] Auto-issue title equals item label and note equals office
   const marker = `note-${Date.now()}`;
   await submitFireTruckWithFlaggedTyre(page, marker);
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
   const card = page.locator(
@@ -84,8 +82,7 @@ test("[ARM-ISSUES-003] Auto-issue shows team and officer attribution", async ({
   const marker = `attribution-${Date.now()}`;
   await submitFireTruckWithFlaggedTyre(page, marker);
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
   await expect(page.getByText(marker)).toBeVisible();
@@ -102,8 +99,7 @@ test("[ARM-ISSUES-004] Officer can raise a standalone issue", async ({
   const title = `Standalone ${Date.now()}`;
   await raiseStandaloneIssue(page, title, "Need workshop diagnostic", "high");
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
   await expect(page.getByText(title)).toBeVisible();
@@ -128,8 +124,7 @@ test("[ARM-ISSUES-006] Admin issues page shows Open and Resolved sections", asyn
   const title = `Section-test ${Date.now()}`;
   await raiseStandaloneIssue(page, title, "For section test");
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
   await expect(
@@ -144,8 +139,7 @@ test("[ARM-ISSUES-007] Admin can resolve an open issue with a resolution note", 
   const title = `Resolve-me ${Date.now()}`;
   await raiseStandaloneIssue(page, title, "Resolution flow test");
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
@@ -168,8 +162,7 @@ test("[ARM-ISSUES-008] Resolved issue shows resolution text and date", async ({
   const title = `Resolution-display ${Date.now()}`;
   await raiseStandaloneIssue(page, title, "Resolution display test");
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
@@ -192,8 +185,7 @@ test("[ARM-ISSUES-009] Severity badges render with distinct visual colors", asyn
   const title = `Critical-${Date.now()}`;
   await raiseStandaloneIssue(page, title, "Critical badge test", "critical");
 
-  await page.getByRole("button", { name: /Officer One/i }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await signOut(page);
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
