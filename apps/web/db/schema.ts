@@ -196,6 +196,26 @@ export const responsesRelations = relations(responses, ({ one }) => ({
   }),
 }));
 
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id),
+    action: varchar("action", { length: 100 }).notNull(),
+    targetType: varchar("target_type", { length: 50 }).notNull(),
+    targetId: uuid("target_id"),
+    payload: jsonb("payload").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("audit_logs_actor_idx").on(t.actorId),
+    index("audit_logs_action_idx").on(t.action),
+    index("audit_logs_created_idx").on(t.createdAt),
+  ],
+);
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+
 export const issuesRelations = relations(issues, ({ one }) => ({
   submission: one(submissions, { fields: [issues.submissionId], references: [submissions.id] }),
   templateItem: one(templateItems, {

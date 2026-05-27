@@ -241,6 +241,30 @@ test("[ARM-SUBMIT-006] Required dropdown left empty flags the item", async ({
   expect(parseInt(match![1]!, 10)).toBeLessThan(100);
 });
 
+test("[ARM-SUBMIT-008] Required date_time left empty flags the item", async ({
+  page,
+}) => {
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await page.getByRole("link", { name: /Ambulance Equipment Audit/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /Ambulance Equipment Audit/i }),
+  ).toBeVisible();
+  // Leave required date_time blank. Fill the required number.
+  await page.getByRole("spinbutton").fill("12");
+  await page.evaluate(() => {
+    const form = document.querySelector("form");
+    if (form) form.noValidate = true;
+  });
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+  const row = page.getByRole("row", { name: /Ambulance Equipment Audit/ }).first();
+  const text = await row.innerText();
+  const match = text.match(/(\d+)%/);
+  expect(match).toBeTruthy();
+  expect(parseInt(match![1]!, 10)).toBeLessThan(100);
+});
+
 test("[ARM-SUBMIT-007] Required number left empty flags the item", async ({
   page,
 }) => {

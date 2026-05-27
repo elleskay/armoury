@@ -124,6 +124,34 @@ test("[ARM-TEMPLATES-010] Admin can edit a published template in-place", async (
   await expect(page.getByText(updatedName)).toBeVisible();
 });
 
+test("[ARM-DASHBOARD-012] Admin actions are recorded in the audit log", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
+  const tmplName = `Audit-target ${Date.now()}`;
+  await page.getByLabel("Name", { exact: true }).fill(tmplName);
+  await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
+  await page.getByRole("button", { name: /Create template/i }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+
+  const row = page.getByRole("row", { name: new RegExp(tmplName) });
+  await row.getByRole("button", { name: new RegExp(`Archive ${tmplName}`) }).click();
+  await expect(row).toContainText(/Archived/i);
+
+  await page.goto("/admin/audit");
+  await expect(page.getByRole("heading", { name: /Audit log/i })).toBeVisible();
+  await expect(
+    page
+      .getByRole("cell", { name: /template\.archive/i })
+      .first(),
+  ).toBeVisible();
+});
+
 test("[ARM-SCHED-004] Admin can pause and resume a template schedule", async ({
   page,
 }) => {

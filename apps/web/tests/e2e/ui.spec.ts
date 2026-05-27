@@ -14,7 +14,7 @@ test("[ARM-UI-001] Officer sidebar shows Dashboard, My Checklists, Past checks, 
   await expect(page.getByRole("link", { name: /Raise issue/i }).first()).toBeVisible();
 });
 
-test("[ARM-UI-002] Admin sidebar shows Dashboard, Templates, Submissions, Issues", async ({
+test("[ARM-UI-002] Admin sidebar shows Dashboard, Templates, Submissions, Issues, Audit log", async ({
   page,
 }) => {
   await signInAsAdmin(page);
@@ -23,6 +23,7 @@ test("[ARM-UI-002] Admin sidebar shows Dashboard, Templates, Submissions, Issues
   await expect(page.getByRole("link", { name: /^Templates$/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /^Submissions$/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /^Issues$/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Audit log/i })).toBeVisible();
 });
 
 test("[ARM-UI-003] Theme toggle is reachable and persists across reload", async ({

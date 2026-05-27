@@ -121,7 +121,7 @@ async function main() {
       position: 4,
       label: "Last drug kit expiry check",
       kind: "date_time",
-      required: false,
+      required: true,
     },
 
     // A&E Crash Cart

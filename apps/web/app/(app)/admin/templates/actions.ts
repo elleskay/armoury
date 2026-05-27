@@ -5,8 +5,28 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db/client";
-import { templates, templateItems, teams } from "@/db/schema";
+import { templates, templateItems, teams, auditLogs } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
+
+async function recordAudit(
+  actorId: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+  payload?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await db.insert(auditLogs).values({
+      actorId,
+      action,
+      targetType,
+      targetId,
+      payload: payload ?? null,
+    });
+  } catch {
+    // Best-effort: audit must not block the action.
+  }
+}
 
 const itemKindEnum = z.enum(["boolean", "text", "number", "dropdown", "date_time"]);
 
@@ -113,7 +133,7 @@ export async function listTeams() {
 const templateIdSchema = z.object({ templateId: z.string().uuid() });
 
 export async function archiveTemplate(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = templateIdSchema.safeParse({
     templateId: formData.get("templateId"),
   });
@@ -123,6 +143,8 @@ export async function archiveTemplate(formData: FormData) {
     .update(templates)
     .set({ archivedAt: new Date() })
     .where(eq(templates.id, parsed.data.templateId));
+
+  await recordAudit(admin.id, "template.archive", "template", parsed.data.templateId);
 
   revalidatePath("/admin/templates");
   revalidatePath("/officer");
