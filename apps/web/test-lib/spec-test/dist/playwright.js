@@ -13,7 +13,7 @@ export function specTest(id, titleOrFn, bodyOrOptions, maybeOptions) {
     if (typeof body !== "function") {
         throw new Error(`specTest(${id}): body function is required`);
     }
-    base(`[${id}] ${title}`, async (fixtures, testInfo) => {
+    base(`[${id}] ${title}`, async ({ ...fixtures }, testInfo) => {
         const start = Date.now();
         let passed = true;
         try {
