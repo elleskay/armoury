@@ -121,6 +121,44 @@ test("[ARM-SUBMIT-004] Recent submissions card shows template, items, and score"
   await expect(row).toContainText(/%/);
 });
 
+test("[ARM-SUBMIT-009] Officer can attach an issue note to flag an item", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  await page.getByRole("spinbutton").fill("11500");
+  const combo = page.getByRole("combobox").first();
+  await combo.click();
+  await page.getByRole("option", { name: "Clean", exact: true }).click();
+  await page
+    .getByPlaceholder(/Optional issue note/)
+    .first()
+    .fill("Tyre pressure looks low");
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+  const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
+  const textContent = await row.innerText();
+  const match = textContent.match(/(\d+)%/);
+  expect(match).toBeTruthy();
+  const score = parseInt(match![1]!, 10);
+  expect(score).toBeLessThan(100);
+});
+
+test("[ARM-SUBMIT-010] Non-required items left blank do not flag", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  // All booleans default to Yes, mileage required, cabin required dropdown.
+  // Notes (item 6) is non-required and we leave it blank.
+  await page.getByRole("spinbutton").fill("12345");
+  const combo = page.getByRole("combobox").first();
+  await combo.click();
+  await page.getByRole("option", { name: "Clean", exact: true }).click();
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+  const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
+  await expect(row).toContainText("100%");
+});
+
 test("[ARM-SUBMIT-005] Boolean=No flags the item as not-ok", async ({ page }) => {
   await openFireTruckSubmit(page);
   await page.getByRole("radio", { name: "No" }).first().click();

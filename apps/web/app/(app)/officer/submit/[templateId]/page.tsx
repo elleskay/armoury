@@ -24,7 +24,7 @@ export default async function SubmitPage({
 }: {
   params: Promise<{ templateId: string }>;
 }) {
-  await requireOfficer();
+  const officer = await requireOfficer();
   const { templateId } = await params;
 
   const template = (
@@ -32,6 +32,8 @@ export default async function SubmitPage({
   )[0];
 
   if (!template) notFound();
+  if (template.teamId && template.teamId !== officer.teamId) notFound();
+  if (template.status !== "published" || template.archivedAt) notFound();
 
   const items = await db
     .select()

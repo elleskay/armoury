@@ -26,6 +26,16 @@ export async function submitChecklist(formData: FormData) {
     .limit(1);
   if (!template) throw new Error("Template not found");
 
+  // Team scoping: officer may only submit templates assigned to their team
+  // (or unassigned, cross-team templates). Reject if the officer is on a
+  // different team than the template owner.
+  if (template.teamId && template.teamId !== officer.teamId) {
+    throw new Error("Not authorized for this template");
+  }
+  if (template.status !== "published" || template.archivedAt) {
+    throw new Error("Template is not available for submission");
+  }
+
   const items = await db
     .select()
     .from(templateItems)

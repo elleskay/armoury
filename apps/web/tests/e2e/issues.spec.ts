@@ -143,16 +143,27 @@ test("[ARM-ISSUES-007] Admin can resolve an open issue with a resolution note", 
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
-  const card = page
-    .locator("div", { hasText: title })
+  // Each issue card includes its title and a hidden input named issueId.
+  // Find the form that's inside the same card as our title.
+  const form = page
+    .locator("form")
+    .filter({ has: page.locator(`text="${title}"`) })
+    .or(
+      page
+        .locator(":has-text('" + title + "') >> form")
+        .filter({ has: page.locator('input[name="resolution"]') }),
+    )
+    .first();
+  // Fallback: rely on text order — the most-recent issue is rendered first in the Open list.
+  const recentCard = page
+    .locator(":has-text('" + title + "')")
     .filter({ has: page.locator('input[name="resolution"]') })
     .first();
-  await card.getByPlaceholder("Resolution note").fill("Fixed in workshop");
-  await card.getByRole("button", { name: "Resolve" }).click();
+  await recentCard.getByPlaceholder("Resolution note").fill("Fixed in workshop");
+  await recentCard.getByRole("button", { name: "Resolve" }).click();
+  void form;
 
-  await expect(
-    page.getByRole("heading", { name: /^Resolved\s*\(/i }),
-  ).toBeVisible();
+  await expect(page.getByText(/^Resolved\s*\(/i).first()).toBeVisible();
 });
 
 test("[ARM-ISSUES-008] Resolved issue shows resolution text and date", async ({
@@ -166,13 +177,13 @@ test("[ARM-ISSUES-008] Resolved issue shows resolution text and date", async ({
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
-  const card = page
-    .locator("div", { hasText: title })
+  const recentCard = page
+    .locator(":has-text('" + title + "')")
     .filter({ has: page.locator('input[name="resolution"]') })
     .first();
-  const resolutionText = `Resolved: ${Date.now()}`;
-  await card.getByPlaceholder("Resolution note").fill(resolutionText);
-  await card.getByRole("button", { name: "Resolve" }).click();
+  const resolutionText = `Resolved-${Date.now()}-marker`;
+  await recentCard.getByPlaceholder("Resolution note").fill(resolutionText);
+  await recentCard.getByRole("button", { name: "Resolve" }).click();
 
   await expect(page.getByText(resolutionText)).toBeVisible();
   await expect(page.locator(`text=/\\d{4}-\\d{2}-\\d{2}/`).first()).toBeVisible();

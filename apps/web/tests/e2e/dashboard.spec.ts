@@ -39,9 +39,7 @@ test("[ARM-DASHBOARD-004] Open issues stat card visible with hint text", async (
 test("[ARM-DASHBOARD-005] Submissions chart card renders", async ({ page }) => {
   await signInAsAdmin(page);
   await page.goto("/dashboard");
-  await expect(
-    page.getByRole("heading", { name: /Submissions over time/i }),
-  ).toBeVisible();
+  await expect(page.getByText(/Submissions over time/i)).toBeVisible();
 });
 
 test("[ARM-DASHBOARD-006] Per-template table card renders", async ({
@@ -49,11 +47,13 @@ test("[ARM-DASHBOARD-006] Per-template table card renders", async ({
 }) => {
   await signInAsAdmin(page);
   await page.goto("/dashboard");
+  await expect(page.getByText(/Per template/i).first()).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /Per template/i }),
+    page.getByRole("columnheader", { name: /Template/i }),
   ).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: /Template/i })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: /Avg score/i })).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: /Avg score/i }),
+  ).toBeVisible();
 });
 
 test("[ARM-DASHBOARD-007] Open issues panel on dashboard shows most-recent items", async ({
@@ -61,7 +61,8 @@ test("[ARM-DASHBOARD-007] Open issues panel on dashboard shows most-recent items
 }) => {
   await signInAsAdmin(page);
   await page.goto("/dashboard");
-  await expect(
-    page.getByRole("heading", { name: /^Open issues$/i }).first(),
-  ).toBeVisible();
+  // The CardTitle "Open issues" is a div, not a heading. Use text scoping.
+  // Multiple matches exist (stat card label + panel title), so .first() is fine.
+  const openIssuesPanel = page.getByText(/^Open issues$/).first();
+  await expect(openIssuesPanel).toBeVisible();
 });

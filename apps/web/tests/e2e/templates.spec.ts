@@ -6,6 +6,9 @@ test("[ARM-TEMPLATES-001] Admin can create a template with required fields", asy
 }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
 
   const uniqueName = `Test Template ${Date.now()}`;
   await page.getByLabel("Name", { exact: true }).fill(uniqueName);
@@ -22,6 +25,9 @@ test("[ARM-TEMPLATES-002] New template defaults to status=published", async ({
 }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
 
   const uniqueName = `Default-published ${Date.now()}`;
   await page.getByLabel("Name", { exact: true }).fill(uniqueName);
@@ -40,6 +46,9 @@ test("[ARM-TEMPLATES-003] New template defaults to frequency=open, shift=any", a
 }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
 
   const uniqueName = `Default-open-any ${Date.now()}`;
   await page.getByLabel("Name", { exact: true }).fill(uniqueName);
@@ -92,6 +101,9 @@ test("[ARM-TEAMS-003] Templates can be unassigned (visible across teams)", async
 }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
 
   const uniqueName = `Cross-team ${Date.now()}`;
   await page.getByLabel("Name", { exact: true }).fill(uniqueName);

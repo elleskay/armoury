@@ -33,14 +33,13 @@ test("[ARM-UI-003] Theme toggle is reachable and persists across reload", async 
   await expect(toggle).toBeVisible();
 
   const html = page.locator("html");
-  const initialTheme = (await html.getAttribute("class")) ?? "";
   await toggle.click();
-  await page.waitForTimeout(200);
-  const afterToggle = (await html.getAttribute("class")) ?? "";
-  expect(afterToggle).not.toBe(initialTheme);
+  await page.getByRole("menuitem", { name: /^Dark$/ }).click();
+  await page.waitForTimeout(300);
+  await expect(html).toHaveClass(/dark/);
+
   await page.reload();
-  const afterReload = (await html.getAttribute("class")) ?? "";
-  expect(afterReload).toBe(afterToggle);
+  await expect(html).toHaveClass(/dark/);
 });
 
 test("[ARM-UI-004] No em-dashes appear in primary signed-in pages", async ({
