@@ -1,7 +1,21 @@
 import { desc, eq } from "drizzle-orm";
+import { FileCheck2 } from "lucide-react";
+
 import { db } from "@/db/client";
 import { submissions, templates, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function SubmissionsPage() {
   await requireAdmin();
@@ -21,56 +35,51 @@ export default async function SubmissionsPage() {
     .limit(100);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">Recent submissions</h1>
+    <div className="space-y-4">
+      <PageHeader
+        title="Recent submissions"
+        description="All checklist submissions across teams."
+      />
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
-          <p className="text-gray-500">No submissions yet.</p>
-        </div>
+        <EmptyState
+          icon={FileCheck2}
+          title="No submissions yet"
+          description="Submissions from officers will appear here."
+        />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  When
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Template
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Officer
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Template</TableHead>
+                <TableHead>Officer</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                <TableRow key={row.id}>
+                  <TableCell className="text-muted-foreground">
                     {row.submittedAt.toISOString().replace("T", " ").slice(0, 16)}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.templateName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{row.officerName}</td>
-                  <td className="px-4 py-3 text-sm">
+                  </TableCell>
+                  <TableCell className="font-medium">{row.templateName}</TableCell>
+                  <TableCell>{row.officerName}</TableCell>
+                  <TableCell className="text-right">
                     {row.allOk ? (
-                      <span className="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                         All OK
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                        Issues
-                      </span>
+                      <Badge variant="destructive">Issues</Badge>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

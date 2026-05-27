@@ -1,13 +1,42 @@
 import { sql, eq, desc, gte } from "drizzle-orm";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
+  Inbox,
+  ShieldCheck,
+} from "lucide-react";
+
 import { db } from "@/db/client";
 import { submissions, issues, teams, templates, users } from "@/db/schema";
 import { requireUser } from "@/lib/session";
+import { PageHeader } from "@/components/PageHeader";
+import { StatCard } from "@/components/StatCard";
+import { EmptyState } from "@/components/EmptyState";
+import { SubmissionsChart, type ChartPoint } from "@/components/SubmissionsChart";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function DashboardPage() {
   const user = await requireUser();
 
   const since = new Date();
-  since.setDate(since.getDate() - 7);
+  since.setDate(since.getDate() - 14);
 
   const totals = await db
     .select({
@@ -17,9 +46,7 @@ export default async function DashboardPage() {
     .from(submissions);
 
   const recent = await db
-    .select({
-      total: sql<number>`count(*)::int`,
-    })
+    .select({ total: sql<number>`count(*)::int` })
     .from(submissions)
     .where(gte(submissions.submittedAt, since));
 
@@ -53,103 +80,172 @@ export default async function DashboardPage() {
     .innerJoin(templates, eq(submissions.templateId, templates.id))
     .where(eq(issues.status, "open"))
     .orderBy(desc(issues.createdAt))
-    .limit(8);
+    .limit(6);
+
+  const chartRaw = await db
+    .select({
+      day: sql<string>`to_char(date_trunc('day', ${submissions.submittedAt}), 'YYYY-MM-DD')`,
+      ok: sql<number>`count(*) filter (where ${submissions.allOk} = true)::int`,
+      issues: sql<number>`count(*) filter (where ${submissions.allOk} = false)::int`,
+    })
+    .from(submissions)
+    .where(gte(submissions.submittedAt, since))
+    .groupBy(sql`date_trunc('day', ${submissions.submittedAt})`)
+    .orderBy(sql`date_trunc('day', ${submissions.submittedAt})`);
+
+  const chartData: ChartPoint[] = chartRaw.map((r) => ({
+    date: r.day.slice(5),
+    ok: r.ok,
+    issues: r.issues,
+  }));
 
   const total = totals[0]?.total ?? 0;
   const allOk = totals[0]?.allOk ?? 0;
   const complianceRate = total > 0 ? Math.round((allOk / total) * 100) : 0;
+  const openIssuesCount = openIssues[0]?.count ?? 0;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500">
-          Welcome back, {user.name}.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description={`Welcome back, ${user.name}.`}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total submissions" value={total.toString()} />
-        <StatCard label="Last 7 days" value={(recent[0]?.total ?? 0).toString()} />
-        <StatCard label="Compliance rate" value={`${complianceRate}%`} />
+        <StatCard
+          label="Total submissions"
+          value={total}
+          icon={ClipboardCheck}
+          hint="All time"
+        />
+        <StatCard
+          label="Last 14 days"
+          value={recent[0]?.total ?? 0}
+          icon={Activity}
+          hint="Rolling window"
+        />
+        <StatCard
+          label="Compliance rate"
+          value={`${complianceRate}%`}
+          icon={ShieldCheck}
+          tone={complianceRate >= 90 ? "success" : complianceRate >= 70 ? "info" : "alert"}
+          hint="All-OK submissions"
+        />
         <StatCard
           label="Open issues"
-          value={(openIssues[0]?.count ?? 0).toString()}
-          tone={openIssues[0]?.count ? "alert" : "default"}
+          value={openIssuesCount}
+          icon={AlertTriangle}
+          tone={openIssuesCount > 0 ? "alert" : "success"}
+          hint={openIssuesCount > 0 ? "Needs action" : "All clear"}
         />
       </div>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Per team</h2>
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Team</th>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Agency</th>
-                <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">Submissions</th>
-                <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">Compliance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {byTeam.map((t) => {
-                const rate = t.submissions > 0 ? Math.round((t.allOk / t.submissions) * 100) : 0;
-                return (
-                  <tr key={t.teamName}>
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900">{t.teamName}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">{t.agency}</td>
-                    <td className="px-4 py-2 text-right text-sm text-gray-700">{t.submissions}</td>
-                    <td className="px-4 py-2 text-right text-sm text-gray-700">
-                      {t.submissions > 0 ? `${rate}%` : "n/a"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Submissions over time</CardTitle>
+          <CardDescription>Daily submissions in the last 14 days.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {chartData.length === 0 ? (
+            <EmptyState
+              icon={Activity}
+              title="No submissions yet"
+              description="Once officers start submitting checklists, the trend will appear here."
+            />
+          ) : (
+            <SubmissionsChart data={chartData} />
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Open issues</h2>
-        {recentIssues.length === 0 ? (
-          <p className="text-sm text-gray-500">No open issues.</p>
-        ) : (
-          <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
-            {recentIssues.map((issue) => (
-              <li key={issue.id} className="px-4 py-3">
-                <div className="text-sm font-medium text-gray-900">{issue.templateName}</div>
-                <div className="mt-1 text-sm text-gray-700">{issue.note}</div>
-                <div className="mt-1 text-xs text-gray-400">
-                  {issue.createdAt.toISOString().replace("T", " ").slice(0, 16)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
-  );
-}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Per team</CardTitle>
+            <CardDescription>Submissions and compliance by team.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Agency</TableHead>
+                  <TableHead className="text-right">Submissions</TableHead>
+                  <TableHead className="text-right">Compliance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {byTeam.map((t) => {
+                  const rate =
+                    t.submissions > 0 ? Math.round((t.allOk / t.submissions) * 100) : 0;
+                  return (
+                    <TableRow key={t.teamName}>
+                      <TableCell className="font-medium">{t.teamName}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{t.agency}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{t.submissions}</TableCell>
+                      <TableCell className="text-right">
+                        {t.submissions > 0 ? (
+                          <Badge
+                            variant={rate >= 90 ? "default" : rate >= 70 ? "secondary" : "destructive"}
+                          >
+                            {rate}%
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">n/a</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-function StatCard({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "alert";
-}) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-      <div
-        className={`mt-2 text-3xl font-semibold ${
-          tone === "alert" ? "text-red-600" : "text-gray-900"
-        }`}
-      >
-        {value}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open issues</CardTitle>
+            <CardDescription>Most recent first.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentIssues.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle2}
+                title="No open issues"
+                description="All flagged items have been resolved."
+              />
+            ) : (
+              <ul className="space-y-3">
+                {recentIssues.map((issue) => (
+                  <li key={issue.id} className="flex gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-sm font-medium leading-tight">
+                        {issue.templateName}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {issue.note}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {issue.createdAt.toISOString().replace("T", " ").slice(0, 16)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+                {recentIssues.length === 0 && (
+                  <EmptyState
+                    icon={Inbox}
+                    title="Nothing to show"
+                  />
+                )}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

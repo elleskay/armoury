@@ -1,8 +1,22 @@
 import Link from "next/link";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { CheckCircle2, ChevronRight, ClipboardList, FileCheck2 } from "lucide-react";
+
 import { db } from "@/db/client";
 import { templates, teams, submissions, users } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function OfficerHome() {
   const me = await requireOfficer();
@@ -13,6 +27,7 @@ export default async function OfficerHome() {
       name: templates.name,
       description: templates.description,
       teamName: teams.name,
+      teamAgency: teams.agency,
     })
     .from(templates)
     .leftJoin(teams, eq(templates.teamId, teams.id))
@@ -40,72 +55,97 @@ export default async function OfficerHome() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <h1 className="text-2xl font-semibold text-gray-900">My checklists</h1>
-        {myTemplates.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-gray-500">No checklists assigned to your team yet.</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {myTemplates.map((t) => (
-              <Link
-                key={t.id}
-                href={`/officer/submit/${t.id}`}
-                className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-400"
-              >
-                <div className="font-medium text-gray-900">{t.name}</div>
-                {t.description ? (
-                  <div className="mt-1 text-sm text-gray-500">{t.description}</div>
-                ) : null}
-                <div className="mt-3 text-xs text-gray-400">
-                  {t.teamName ?? "All teams"}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+      <PageHeader
+        title="My checklists"
+        description="Checklists assigned to your team. Pick one to start."
+      />
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Recent submissions</h2>
+      {myTemplates.length === 0 ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="No checklists assigned"
+          description="Your team has no active checklists. Ask your admin to assign one."
+        />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {myTemplates.map((t) => (
+            <Link key={t.id} href={`/officer/submit/${t.id}`} className="block">
+              <Card className="group flex h-full flex-col gap-3 p-5 transition-colors hover:border-primary/50 hover:bg-accent/40">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ClipboardList className="h-4 w-4" />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="font-medium leading-tight">{t.name}</div>
+                  {t.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {t.description}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="secondary" className="text-xs">
+                    {t.teamName ?? "All teams"}
+                  </Badge>
+                  {t.teamAgency && (
+                    <Badge variant="outline" className="text-xs">
+                      {t.teamAgency}
+                    </Badge>
+                  )}
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold">Recent submissions</h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-gray-500">Nothing submitted yet.</p>
+          <EmptyState
+            icon={FileCheck2}
+            title="Nothing submitted yet"
+            description="Once you submit a checklist, it'll show up here."
+          />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">When</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Template</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Template</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {recent.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-2 text-sm text-gray-700">
+                  <TableRow key={r.id}>
+                    <TableCell className="text-muted-foreground">
                       {r.submittedAt.toISOString().replace("T", " ").slice(0, 16)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{r.templateName}</td>
-                    <td className="px-4 py-2 text-sm">
+                    </TableCell>
+                    <TableCell className="font-medium">{r.templateName}</TableCell>
+                    <TableCell className="text-right">
                       {r.allOk ? (
-                        <span className="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <Badge
+                          variant="secondary"
+                          className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                        >
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
                           All OK
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                          Issues
-                        </span>
+                        <Badge variant="destructive">Issues</Badge>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
         )}
-      </section>
+      </div>
     </div>
   );
 }
