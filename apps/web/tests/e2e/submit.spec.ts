@@ -108,6 +108,31 @@ test("[ARM-ITEMS-010] Officer can search within long checklists", async ({
   await expect(page.getByText(/Hose connections secure/)).toBeVisible();
 });
 
+test("[ARM-SUBMIT-011] Officer can save a partial draft and resume after reload", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  await page.getByRole("radio", { name: "No" }).first().click();
+  await page
+    .getByPlaceholder(/Optional issue note/)
+    .first()
+    .fill("Looks low after AM run");
+  await page.getByRole("spinbutton").fill("99887");
+
+  await page.getByRole("button", { name: /Save draft/ }).click();
+  await expect(page.getByText(/Draft saved/i)).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: /Fire Truck Daily Check/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("radio", { name: "No" }).first()).toBeChecked();
+  await expect(page.getByRole("spinbutton")).toHaveValue("99887");
+  await expect(
+    page.getByPlaceholder(/Optional issue note/).first(),
+  ).toHaveValue("Looks low after AM run");
+});
+
 test("[ARM-ITEMS-007] Items render in position order", async ({ page }) => {
   await openFireTruckSubmit(page);
   const positions = await page.locator("text=/^\\d+\\.$/").allTextContents();
