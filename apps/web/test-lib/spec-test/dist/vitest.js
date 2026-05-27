@@ -1,36 +1,25 @@
-import { test as vitestTest, expect as vitestExpect } from "vitest";
+import { test, expect, afterEach } from "vitest";
 import { recordCoverage } from "./coverage.js";
-export const expect = vitestExpect;
-export const test = vitestTest;
-export function specTest(id, titleOrFn, bodyOrOptions, maybeOptions) {
-    const title = typeof titleOrFn === "string" ? titleOrFn : id;
-    const body = typeof titleOrFn === "function"
-        ? titleOrFn
-        : bodyOrOptions;
-    const opts = (typeof titleOrFn === "string"
-        ? maybeOptions
-        : bodyOrOptions) ?? {};
-    if (typeof body !== "function") {
-        throw new Error(`specTest(${id}): body function is required`);
-    }
-    vitestTest(`[${id}] ${title}`, async () => {
-        const start = Date.now();
-        let passed = true;
-        try {
-            await body();
-        }
-        catch (err) {
-            passed = false;
-            throw err;
-        }
-        finally {
-            recordCoverage({
-                id,
-                status: passed ? "passed" : "failed",
-                category: opts.category,
-                durationMs: Date.now() - start,
-            });
-        }
+export { test, expect };
+const SPEC_ID_RE = /^\[([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)+-\d{3,})\]/;
+/**
+ * Register a global afterEach hook that parses the test name for a spec ID
+ * and records pass/fail to the coverage JSONL. Call this once from a Vitest
+ * setupFile.
+ */
+export function setupSpecCoverage() {
+    afterEach((ctx) => {
+        const taskName = ctx.task?.name ?? "";
+        const m = SPEC_ID_RE.exec(taskName);
+        if (!m)
+            return;
+        const id = m[1];
+        const failed = !!ctx.task?.result?.errors?.length;
+        recordCoverage({
+            id,
+            status: failed ? "failed" : "passed",
+            durationMs: ctx.task?.result?.duration,
+        });
     });
 }
 //# sourceMappingURL=vitest.js.map

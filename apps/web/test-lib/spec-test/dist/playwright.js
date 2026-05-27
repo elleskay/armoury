@@ -1,37 +1,33 @@
-import { test as base, expect as pwExpect, } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 import { recordCoverage } from "./coverage.js";
-export const expect = pwExpect;
-export const test = base;
-export function specTest(id, titleOrFn, bodyOrOptions, maybeOptions) {
-    const title = typeof titleOrFn === "string" ? titleOrFn : id;
-    const body = typeof titleOrFn === "function"
-        ? titleOrFn
-        : bodyOrOptions;
-    const opts = (typeof titleOrFn === "string"
-        ? maybeOptions
-        : bodyOrOptions) ?? {};
-    if (typeof body !== "function") {
-        throw new Error(`specTest(${id}): body function is required`);
-    }
-    base(`[${id}] ${title}`, async ({ ...fixtures }, testInfo) => {
-        const start = Date.now();
-        let passed = true;
-        try {
-            await body(fixtures, testInfo);
-        }
-        catch (err) {
-            passed = false;
-            throw err;
-        }
-        finally {
+const SPEC_ID_RE = /^\[([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)+-\d{3,})\]/;
+/**
+ * Extended Playwright `test` that auto-records spec coverage.
+ *
+ * Title convention: "[ARM-XXX-001] human description". The leading
+ * [ID] is parsed; if present, the test's outcome is appended to
+ * .spec-coverage/results.jsonl in a post-test hook.
+ *
+ * Tests without a [ID] prefix run normally and are not recorded.
+ */
+export const test = base.extend({
+    specCoverage: [
+        async ({}, use, testInfo) => {
+            await use();
+            const m = SPEC_ID_RE.exec(testInfo.title);
+            if (!m)
+                return;
+            const id = m[1];
+            const status = testInfo.status === "passed" ? "passed" : "failed";
             recordCoverage({
                 id,
-                status: passed ? "passed" : "failed",
-                category: opts.category,
+                status,
                 file: testInfo.file,
-                durationMs: Date.now() - start,
+                durationMs: testInfo.duration,
             });
-        }
-    });
-}
+        },
+        { auto: true },
+    ],
+});
+export { expect };
 //# sourceMappingURL=playwright.js.map

@@ -1,3 +1,4 @@
+const SPEC_ID_RE = /^\[([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)+-\d{3,})\]/;
 function calleeName(node) {
     const c = node.callee;
     if (c.type === "Identifier")
@@ -7,6 +8,20 @@ function calleeName(node) {
             .property;
         if (prop.type === "Identifier")
             return prop.name ?? null;
+    }
+    return null;
+}
+function getStringLiteral(node) {
+    if (!node)
+        return null;
+    if (node.type === "Literal" && typeof node.value === "string") {
+        return node.value;
+    }
+    if (node.type === "TemplateLiteral") {
+        const tl = node;
+        if (tl.expressions.length === 0 && tl.quasis.length === 1) {
+            return tl.quasis[0]?.value.cooked ?? null;
+        }
     }
     return null;
 }
@@ -55,38 +70,34 @@ export const requireExpectInSpecTest = {
     meta: {
         type: "problem",
         docs: {
-            description: "Require at least one expect() call inside every specTest body",
+            description: "Require at least one expect() call inside every test whose title is prefixed with a spec ID like [ARM-XXX-001]",
         },
         schema: [],
         messages: {
-            missingExpect: "specTest('{{id}}') must contain at least one expect() call. A spec requirement that records no assertion does not verify behavior.",
-            missingBody: "specTest('{{id}}') must be called with a function body.",
+            missingExpect: "test('[{{id}}] ...') must contain at least one expect() call. A spec requirement that records no assertion does not verify behavior.",
+            missingBody: "test('[{{id}}] ...') must have a function body.",
         },
     },
     create(context) {
         return {
             CallExpression(node) {
-                if (calleeName(node) !== "specTest")
+                const callee = calleeName(node);
+                if (callee !== "test" && callee !== "it")
                     return;
-                const firstArg = node.arguments[0];
-                const id = firstArg && firstArg.type === "Literal" && typeof firstArg.value === "string"
-                    ? firstArg.value
-                    : "<unknown>";
+                const title = getStringLiteral(node.arguments[0]);
+                if (!title)
+                    return;
+                const m = SPEC_ID_RE.exec(title);
+                if (!m)
+                    return;
+                const id = m[1] ?? "<unknown>";
                 const body = findBodyFunction(node);
                 if (!body) {
-                    context.report({
-                        node,
-                        messageId: "missingBody",
-                        data: { id },
-                    });
+                    context.report({ node, messageId: "missingBody", data: { id } });
                     return;
                 }
                 if (!bodyHasExpect(body)) {
-                    context.report({
-                        node,
-                        messageId: "missingExpect",
-                        data: { id },
-                    });
+                    context.report({ node, messageId: "missingExpect", data: { id } });
                 }
             },
         };
