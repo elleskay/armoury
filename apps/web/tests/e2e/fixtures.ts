@@ -29,13 +29,13 @@ export async function signInAsOfficer(page: Page): Promise<void> {
  * need to switch users mid-test. Faster and more reliable than driving
  * the UI sign-out flow, which races on the user-menu button appearing.
  *
+ * Does not navigate. The next signIn() will navigate to /login itself.
+ *
  * For tests that specifically verify the UI sign-out behaviour (e.g.
  * ARM-AUTH-006), drive the menu directly rather than calling this.
  */
 export async function signOut(page: Page): Promise<void> {
   await page.context().clearCookies();
-  await page.goto("/login");
-  await page.waitForURL(/\/login/);
 }
 
 export const test = base;
