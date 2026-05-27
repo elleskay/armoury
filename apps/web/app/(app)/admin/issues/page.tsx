@@ -148,7 +148,7 @@ function IssueCard({
         <p className="text-sm text-muted-foreground">{issue.note}</p>
         {isResolved ? (
           <div className="rounded-md border bg-emerald-50/50 p-3 text-xs dark:bg-emerald-950/30">
-            <span className="font-medium">Resolution:</span> {issue.resolution ?? "—"}
+            <span className="font-medium">Resolution:</span> {issue.resolution ?? "(none)"}
             {issue.resolvedAt && (
               <span className="ml-2 text-muted-foreground">
                 ({issue.resolvedAt.toISOString().slice(0, 10)})

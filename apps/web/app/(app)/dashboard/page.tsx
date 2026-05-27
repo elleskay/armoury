@@ -183,7 +183,7 @@ export default async function DashboardPage() {
                   <TableRow key={t.templateName}>
                     <TableCell className="font-medium">{t.templateName}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{t.agency ?? "—"}</Badge>
+                      <Badge variant="secondary">{t.agency ?? "n/a"}</Badge>
                     </TableCell>
                     <TableCell className="text-right">{t.submissions}</TableCell>
                     <TableCell className="text-right">

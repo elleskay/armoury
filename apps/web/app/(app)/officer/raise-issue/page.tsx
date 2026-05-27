@@ -48,10 +48,10 @@ export default async function RaiseIssuePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low — minor, can wait</SelectItem>
-                  <SelectItem value="medium">Medium — should fix soon</SelectItem>
-                  <SelectItem value="high">High — affects readiness</SelectItem>
-                  <SelectItem value="critical">Critical — out of service</SelectItem>
+                  <SelectItem value="low">Low (minor, can wait)</SelectItem>
+                  <SelectItem value="medium">Medium (should fix soon)</SelectItem>
+                  <SelectItem value="high">High (affects readiness)</SelectItem>
+                  <SelectItem value="critical">Critical (out of service)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
