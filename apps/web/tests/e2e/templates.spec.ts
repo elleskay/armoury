@@ -72,28 +72,25 @@ test("[ARM-SCHED-003] Frequency=open templates show as 'Open' (no fixed deadline
 
 test("[ARM-TEMPLATES-004] Draft templates are not visible to officers", async ({
   page,
-  context,
 }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
   const draftName = `Draft-template ${Date.now()}`;
   await page.getByLabel("Name", { exact: true }).fill(draftName);
-  await page
-    .getByRole("combobox", { name: /Status/i })
-    .first()
-    .click();
-  await page.getByRole("option", { name: /Draft/i }).click();
+  await page.getByLabel("Status", { exact: true }).click();
+  await page.getByRole("option", { name: /^Draft$/ }).click();
   await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
   await page.getByRole("button", { name: /Create template/i }).click();
   await expect(page).toHaveURL(/\/admin\/templates/);
 
-  // Now sign in as officer in a fresh context and verify the draft is hidden
   await signOut(page);
-
   await signInAsOfficer(page);
   await page.goto("/officer");
   await expect(page.getByText(draftName)).not.toBeVisible();
-  void context;
 });
 
 test("[ARM-TEMPLATES-010] Admin can edit a published template in-place", async ({
