@@ -9,11 +9,18 @@ export async function signIn(
   email: string,
   password = TEST_PASSWORD,
 ): Promise<void> {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  // Defensive: drop any leftover session from a prior signIn in this test.
+  await page.context().clearCookies();
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page
+    .getByLabel("Email", { exact: true })
+    .waitFor({ state: "visible", timeout: 10_000 });
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
+    timeout: 10_000,
+  });
 }
 
 export async function signInAsAdmin(page: Page): Promise<void> {
