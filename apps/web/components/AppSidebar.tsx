@@ -11,6 +11,7 @@ import {
   CheckSquare,
   AlertTriangle,
   ChevronUp,
+  History,
   LogOut,
   Megaphone,
 } from "lucide-react";
@@ -62,6 +63,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const officerItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/officer", label: "My Checklists", icon: CheckSquare },
+    { href: "/officer/history", label: "Past checks", icon: History },
     { href: "/officer/raise-issue", label: "Raise issue", icon: Megaphone },
   ];
 

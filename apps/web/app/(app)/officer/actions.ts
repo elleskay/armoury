@@ -6,9 +6,30 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { submissions, responses, issues, templateItems, templates } from "@/db/schema";
+import { submissions, responses, issues, templateItems, templates, teams } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
 import { computeScore } from "@/lib/score";
+
+async function fireIssueWebhook(
+  teamId: string | null | undefined,
+  payload: { title: string; note: string; severity: string; raisedBy: string },
+): Promise<void> {
+  if (!teamId) return;
+  const team = (
+    await db.select().from(teams).where(eq(teams.id, teamId)).limit(1)
+  )[0];
+  if (!team?.webhookUrl) return;
+  try {
+    await fetch(team.webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "issue.raised", ...payload }),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    // Best-effort: webhook failures must not break the issue raise.
+  }
+}
 
 const submitSchema = z.object({ templateId: z.string().uuid() });
 
@@ -166,6 +187,13 @@ export async function raiseStandaloneIssue(formData: FormData) {
     title: parsed.data.title,
     note: parsed.data.note,
     severity: parsed.data.severity,
+  });
+
+  await fireIssueWebhook(officer.teamId, {
+    title: parsed.data.title,
+    note: parsed.data.note,
+    severity: parsed.data.severity,
+    raisedBy: officer.name ?? officer.email ?? officer.id,
   });
 
   revalidatePath("/officer");

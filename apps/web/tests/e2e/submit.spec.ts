@@ -69,6 +69,24 @@ test("[ARM-ITEMS-006] Required items show an asterisk indicator", async ({
   await expect(page.getByText("*", { exact: true }).first()).toBeVisible();
 });
 
+test("[ARM-ITEMS-009] Select-all marks every boolean item No", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  // All three booleans default to Yes
+  const yesRadios = page.getByRole("radio", { name: "Yes" });
+  await expect(yesRadios.nth(0)).toBeChecked();
+  await expect(yesRadios.nth(1)).toBeChecked();
+  await expect(yesRadios.nth(2)).toBeChecked();
+
+  await page.getByRole("button", { name: /Select all No/ }).click();
+
+  const noRadios = page.getByRole("radio", { name: "No" });
+  await expect(noRadios.nth(0)).toBeChecked();
+  await expect(noRadios.nth(1)).toBeChecked();
+  await expect(noRadios.nth(2)).toBeChecked();
+});
+
 test("[ARM-ITEMS-010] Officer can search within long checklists", async ({
   page,
 }) => {
@@ -142,6 +160,29 @@ test("[ARM-SUBMIT-004] Recent submissions card shows template, items, and score"
   await expect(row).toContainText(/%/);
 });
 
+test("[ARM-SCHED-008] Past Checks view lists historical submissions", async ({
+  page,
+}) => {
+  await signInAsOfficer(page);
+  // Make a submission so there's something to show
+  await openFireTruckSubmit(page);
+  await page.getByRole("spinbutton").fill("13000");
+  const combo = page.getByRole("combobox").first();
+  await combo.click();
+  await page.getByRole("option", { name: "Clean", exact: true }).click();
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+
+  // Navigate to Past checks
+  await page.goto("/officer/history");
+  await expect(page.getByRole("heading", { name: /Past checks/i })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: /Template/i })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: /Score/i })).toBeVisible();
+  // Should list at least one Fire Truck submission
+  const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
+  await expect(row).toBeVisible();
+});
+
 test("[ARM-SUBMIT-009] Officer can attach an issue note to flag an item", async ({
   page,
 }) => {
@@ -178,6 +219,48 @@ test("[ARM-SUBMIT-010] Non-required items left blank do not flag", async ({
   await expect(page).toHaveURL(/\/officer$/);
   const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
   await expect(row).toContainText("100%");
+});
+
+test("[ARM-SUBMIT-006] Required dropdown left empty flags the item", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  // Fill mileage but leave Cabin condition (required dropdown) unselected.
+  // Disable HTML5 validation so the form actually POSTs.
+  await page.getByRole("spinbutton").fill("12345");
+  await page.evaluate(() => {
+    const form = document.querySelector("form");
+    if (form) form.noValidate = true;
+  });
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+  const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
+  const text = await row.innerText();
+  const match = text.match(/(\d+)%/);
+  expect(match).toBeTruthy();
+  expect(parseInt(match![1]!, 10)).toBeLessThan(100);
+});
+
+test("[ARM-SUBMIT-007] Required number left empty flags the item", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  // Skip Mileage (required number). Cabin condition is also required so
+  // bypass HTML5 validation, but we still pick Clean so only Mileage flags.
+  const combo = page.getByRole("combobox").first();
+  await combo.click();
+  await page.getByRole("option", { name: "Clean", exact: true }).click();
+  await page.evaluate(() => {
+    const form = document.querySelector("form");
+    if (form) form.noValidate = true;
+  });
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await expect(page).toHaveURL(/\/officer$/);
+  const row = page.getByRole("row", { name: /Fire Truck Daily Check/ }).first();
+  const text = await row.innerText();
+  const match = text.match(/(\d+)%/);
+  expect(match).toBeTruthy();
+  expect(parseInt(match![1]!, 10)).toBeLessThan(100);
 });
 
 test("[ARM-SUBMIT-005] Boolean=No flags the item as not-ok", async ({ page }) => {

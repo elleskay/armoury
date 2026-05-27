@@ -1,16 +1,17 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
 import { signInAsAdmin, signInAsOfficer } from "./fixtures";
 
-test("[ARM-UI-001] Officer sidebar shows Dashboard, My Checklists, Raise issue", async ({
+test("[ARM-UI-001] Officer sidebar shows Dashboard, My Checklists, Past checks, Raise issue", async ({
   page,
 }) => {
   await signInAsOfficer(page);
   await page.goto("/officer");
-  const sidebar = page.locator("aside, nav, [data-slot='sidebar-content']").first();
   await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /My Checklists/i })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Past checks/i }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: /Raise issue/i }).first()).toBeVisible();
-  void sidebar;
 });
 
 test("[ARM-UI-002] Admin sidebar shows Dashboard, Templates, Submissions, Issues", async ({
