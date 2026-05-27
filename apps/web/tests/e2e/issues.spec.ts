@@ -5,11 +5,14 @@ import type { Page } from "@playwright/test";
 async function submitFireTruckWithFlaggedTyre(page: Page, note: string) {
   await page.goto("/officer");
   await page.getByRole("link", { name: /Fire Truck Daily Check/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /Fire Truck Daily Check/i }),
+  ).toBeVisible();
   await page.getByRole("radio", { name: "No" }).first().click();
-  const tyreNote = page
+  await page
     .getByPlaceholder(/Optional issue note/)
-    .first();
-  await tyreNote.fill(note);
+    .first()
+    .fill(note);
   await page.getByRole("spinbutton").fill("10000");
   const combo = page.getByRole("combobox").first();
   await combo.click();
@@ -143,25 +146,16 @@ test("[ARM-ISSUES-007] Admin can resolve an open issue with a resolution note", 
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
-  // Each issue card includes its title and a hidden input named issueId.
-  // Find the form that's inside the same card as our title.
-  const form = page
-    .locator("form")
-    .filter({ has: page.locator(`text="${title}"`) })
-    .or(
-      page
-        .locator(":has-text('" + title + "') >> form")
-        .filter({ has: page.locator('input[name="resolution"]') }),
-    )
+  // Cards in the Open section render most-recent first. Find the form
+  // whose enclosing card contains our marker title.
+  const card = page
+    .locator("xpath=//*[contains(., '" + title + "')]/ancestor::*[.//form[1]][1]")
     .first();
-  // Fallback: rely on text order — the most-recent issue is rendered first in the Open list.
-  const recentCard = page
-    .locator(":has-text('" + title + "')")
-    .filter({ has: page.locator('input[name="resolution"]') })
-    .first();
-  await recentCard.getByPlaceholder("Resolution note").fill("Fixed in workshop");
-  await recentCard.getByRole("button", { name: "Resolve" }).click();
-  void form;
+  await card
+    .locator('input[name="resolution"]')
+    .first()
+    .fill("Fixed in workshop");
+  await card.getByRole("button", { name: "Resolve" }).first().click();
 
   await expect(page.getByText(/^Resolved\s*\(/i).first()).toBeVisible();
 });
@@ -177,13 +171,15 @@ test("[ARM-ISSUES-008] Resolved issue shows resolution text and date", async ({
   await signInAsAdmin(page);
   await page.goto("/admin/issues");
 
-  const recentCard = page
-    .locator(":has-text('" + title + "')")
-    .filter({ has: page.locator('input[name="resolution"]') })
+  const card = page
+    .locator("xpath=//*[contains(., '" + title + "')]/ancestor::*[.//form[1]][1]")
     .first();
   const resolutionText = `Resolved-${Date.now()}-marker`;
-  await recentCard.getByPlaceholder("Resolution note").fill(resolutionText);
-  await recentCard.getByRole("button", { name: "Resolve" }).click();
+  await card
+    .locator('input[name="resolution"]')
+    .first()
+    .fill(resolutionText);
+  await card.getByRole("button", { name: "Resolve" }).first().click();
 
   await expect(page.getByText(resolutionText)).toBeVisible();
   await expect(page.locator(`text=/\\d{4}-\\d{2}-\\d{2}/`).first()).toBeVisible();
