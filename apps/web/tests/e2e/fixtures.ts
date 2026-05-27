@@ -24,19 +24,17 @@ export async function signInAsOfficer(page: Page): Promise<void> {
   await signIn(page, OFFICER_EMAIL);
 }
 
+/**
+ * Clears the session by deleting auth cookies. Use this for tests that
+ * need to switch users mid-test. Faster and more reliable than driving
+ * the UI sign-out flow, which races on the user-menu button appearing.
+ *
+ * For tests that specifically verify the UI sign-out behaviour (e.g.
+ * ARM-AUTH-006), drive the menu directly rather than calling this.
+ */
 export async function signOut(page: Page): Promise<void> {
-  // The user-menu button is inside the sidebar footer and contains
-  // an avatar fallback with initials and the user's name. Click any
-  // button in the sidebar footer that matches a known user name.
-  const candidates = [/Officer One/, /Officer Two/, /Admin User/, /Nurse Lim/];
-  for (const re of candidates) {
-    const btn = page.getByRole("button", { name: re });
-    if ((await btn.count()) > 0) {
-      await btn.first().click();
-      break;
-    }
-  }
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.context().clearCookies();
+  await page.goto("/login");
   await page.waitForURL(/\/login/);
 }
 
