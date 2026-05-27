@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // OpenNext build output (generated, do not lint)
+    ".open-next/**",
+    "node_modules/**",
   ]),
 ]);
 
