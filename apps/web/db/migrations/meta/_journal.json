@@ -8,6 +8,13 @@
       "when": 1779876419383,
       "tag": "0000_sleepy_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779896910030,
+      "tag": "0001_nifty_norrin_radd",
+      "breakpoints": true
     }
   ]
 }

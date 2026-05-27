@@ -63,6 +63,7 @@ export const templates = pgTable(
     frequency: frequency("frequency").notNull().default("open"),
     shiftWindow: shiftWindow("shift_window").notNull().default("any"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    schedulePausedAt: timestamp("schedule_paused_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

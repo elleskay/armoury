@@ -5,7 +5,9 @@ import {
   ArchiveRestore,
   ClipboardList,
   Clock,
+  Pause,
   Pencil,
+  Play,
   Plus,
 } from "lucide-react";
 
@@ -14,6 +16,8 @@ import { templates, teams, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
 import {
   archiveTemplate,
+  pauseTemplate,
+  resumeTemplate,
   unarchiveTemplate,
 } from "./actions";
 import { PageHeader } from "@/components/PageHeader";
@@ -59,6 +63,7 @@ export default async function TemplatesPage() {
       shiftWindow: templates.shiftWindow,
       createdAt: templates.createdAt,
       archivedAt: templates.archivedAt,
+      schedulePausedAt: templates.schedulePausedAt,
       teamName: teams.name,
       teamAgency: teams.agency,
       createdByName: users.name,
@@ -124,6 +129,10 @@ export default async function TemplatesPage() {
                   <TableCell>
                     {row.archivedAt ? (
                       <Badge variant="outline">Archived</Badge>
+                    ) : row.schedulePausedAt ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        Paused
+                      </Badge>
                     ) : row.status === "published" ? (
                       <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                         Published
@@ -166,6 +175,35 @@ export default async function TemplatesPage() {
                             Edit
                           </Link>
                         </Button>
+                      )}
+                      {!row.archivedAt && (
+                        row.schedulePausedAt ? (
+                          <form action={resumeTemplate}>
+                            <input type="hidden" name="templateId" value={row.id} />
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Resume ${row.name}`}
+                            >
+                              <Play className="mr-1 h-3.5 w-3.5" />
+                              Resume
+                            </Button>
+                          </form>
+                        ) : (
+                          <form action={pauseTemplate}>
+                            <input type="hidden" name="templateId" value={row.id} />
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Pause ${row.name}`}
+                            >
+                              <Pause className="mr-1 h-3.5 w-3.5" />
+                              Pause
+                            </Button>
+                          </form>
+                        )
                       )}
                     {row.archivedAt ? (
                       <form action={unarchiveTemplate}>

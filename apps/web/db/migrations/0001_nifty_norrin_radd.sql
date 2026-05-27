@@ -1,0 +1,1 @@
+ALTER TABLE "templates" ADD COLUMN "schedule_paused_at" timestamp with time zone;

@@ -65,6 +65,7 @@ export default async function OfficerHome() {
       and(
         eq(templates.status, "published"),
         isNull(templates.archivedAt),
+        isNull(templates.schedulePausedAt),
         or(isNull(templates.teamId), eq(templates.teamId, me.teamId ?? "")),
       ),
     )

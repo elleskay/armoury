@@ -124,6 +124,46 @@ test("[ARM-TEMPLATES-010] Admin can edit a published template in-place", async (
   await expect(page.getByText(updatedName)).toBeVisible();
 });
 
+test("[ARM-SCHED-004] Admin can pause and resume a template schedule", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates/new");
+  await expect(
+    page.getByRole("heading", { name: /New checklist template/i }),
+  ).toBeVisible();
+
+  const tmplName = `Pause-target ${Date.now()}`;
+  await page.getByLabel("Name", { exact: true }).fill(tmplName);
+  await page.getByPlaceholder(/e.g. Tyres in good condition/).fill("Item one");
+  await page.getByRole("button", { name: /Create template/i }).click();
+  await expect(page).toHaveURL(/\/admin\/templates/);
+
+  const row = page.getByRole("row", { name: new RegExp(tmplName) });
+  await row.getByRole("button", { name: new RegExp(`Pause ${tmplName}`) }).click();
+  await expect(row).toContainText(/Paused/i);
+
+  // Officer should not see paused template
+  await signOut(page);
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await expect(page.getByText(tmplName)).not.toBeVisible();
+
+  // Admin resumes
+  await signOut(page);
+  await signInAsAdmin(page);
+  await page.goto("/admin/templates");
+  const row2 = page.getByRole("row", { name: new RegExp(tmplName) });
+  await row2.getByRole("button", { name: new RegExp(`Resume ${tmplName}`) }).click();
+  await expect(row2).not.toContainText(/Paused/i);
+
+  // Officer can see again
+  await signOut(page);
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await expect(page.getByText(tmplName)).toBeVisible();
+});
+
 test("[ARM-TEMPLATES-007] Admin can archive a template", async ({ page }) => {
   await signInAsAdmin(page);
   await page.goto("/admin/templates/new");

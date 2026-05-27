@@ -180,6 +180,38 @@ export async function updateTemplate(formData: FormData) {
   redirect("/admin/templates");
 }
 
+export async function pauseTemplate(formData: FormData) {
+  await requireAdmin();
+  const parsed = templateIdSchema.safeParse({
+    templateId: formData.get("templateId"),
+  });
+  if (!parsed.success) throw new Error("Invalid template id");
+
+  await db
+    .update(templates)
+    .set({ schedulePausedAt: new Date() })
+    .where(eq(templates.id, parsed.data.templateId));
+
+  revalidatePath("/admin/templates");
+  revalidatePath("/officer");
+}
+
+export async function resumeTemplate(formData: FormData) {
+  await requireAdmin();
+  const parsed = templateIdSchema.safeParse({
+    templateId: formData.get("templateId"),
+  });
+  if (!parsed.success) throw new Error("Invalid template id");
+
+  await db
+    .update(templates)
+    .set({ schedulePausedAt: null })
+    .where(eq(templates.id, parsed.data.templateId));
+
+  revalidatePath("/admin/templates");
+  revalidatePath("/officer");
+}
+
 export async function unarchiveTemplate(formData: FormData) {
   await requireAdmin();
   const parsed = templateIdSchema.safeParse({
