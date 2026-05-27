@@ -33,6 +33,7 @@ Thumbs.db
 # CDK
 infra/cdk/**/cdk.out/
 infra/cdk/**/cdk.context.json
+infra/cdk/**/cdk-outputs.json
 
 # Coverage
 coverage/
