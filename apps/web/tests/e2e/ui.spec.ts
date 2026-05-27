@@ -1,0 +1,63 @@
+import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
+import { signInAsAdmin, signInAsOfficer } from "./fixtures";
+
+test("[ARM-UI-001] Officer sidebar shows Dashboard, My Checklists, Raise issue", async ({
+  page,
+}) => {
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  const sidebar = page.locator("aside, nav, [data-slot='sidebar-content']").first();
+  await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /My Checklists/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Raise issue/i }).first()).toBeVisible();
+  void sidebar;
+});
+
+test("[ARM-UI-002] Admin sidebar shows Dashboard, Templates, Submissions, Issues", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  await page.goto("/dashboard");
+  await expect(page.getByRole("link", { name: /^Dashboard$/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Templates$/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Submissions$/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Issues$/i })).toBeVisible();
+});
+
+test("[ARM-UI-003] Theme toggle is reachable and persists across reload", async ({
+  page,
+}) => {
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  const toggle = page.getByRole("button", { name: /Toggle theme/i });
+  await expect(toggle).toBeVisible();
+
+  const html = page.locator("html");
+  const initialTheme = (await html.getAttribute("class")) ?? "";
+  await toggle.click();
+  await page.waitForTimeout(200);
+  const afterToggle = (await html.getAttribute("class")) ?? "";
+  expect(afterToggle).not.toBe(initialTheme);
+  await page.reload();
+  const afterReload = (await html.getAttribute("class")) ?? "";
+  expect(afterReload).toBe(afterToggle);
+});
+
+test("[ARM-UI-004] No em-dashes appear in primary signed-in pages", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  for (const path of ["/dashboard", "/admin/templates", "/admin/issues", "/officer"]) {
+    await page.goto(path);
+    const html = await page.content();
+    expect(html).not.toContain("—");
+  }
+});
+
+test("[ARM-UI-005] Sign in page shows demo credentials hint", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await expect(page.getByText(/admin@armoury\.test/)).toBeVisible();
+  await expect(page.getByText(/officer@armoury\.test/)).toBeVisible();
+});

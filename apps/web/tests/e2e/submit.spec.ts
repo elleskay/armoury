@@ -27,6 +27,27 @@ test("[ARM-ITEMS-002] Item kind number renders a number input", async ({
   await expect(page.getByRole("spinbutton")).toBeVisible();
 });
 
+test("[ARM-ITEMS-003] Item kind text renders a text input", async ({ page }) => {
+  await openFireTruckSubmit(page);
+  const textInput = page.locator('input[type="text"]').filter({
+    has: page.locator(":scope"),
+  });
+  await expect(textInput.first()).toBeVisible();
+});
+
+test("[ARM-ITEMS-005] Item kind date_time renders a datetime-local input", async ({
+  page,
+}) => {
+  await signInAsOfficer(page);
+  await page.goto("/officer");
+  await page.getByRole("link", { name: /Ambulance Equipment Audit/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /Ambulance Equipment Audit/i }),
+  ).toBeVisible();
+  const dt = page.locator('input[type="datetime-local"]');
+  await expect(dt).toBeVisible();
+});
+
 test("[ARM-ITEMS-004] Item kind dropdown renders combobox with options", async ({
   page,
 }) => {
