@@ -9,8 +9,10 @@ import {
   ClipboardList,
   FileCheck2,
   CheckSquare,
+  AlertTriangle,
   ChevronUp,
   LogOut,
+  Megaphone,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -54,11 +56,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/templates", label: "Templates", icon: ClipboardList },
     { href: "/admin/submissions", label: "Submissions", icon: FileCheck2 },
+    { href: "/admin/issues", label: "Issues", icon: AlertTriangle },
   ];
 
   const officerItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/officer", label: "My Checklists", icon: CheckSquare },
+    { href: "/officer/raise-issue", label: "Raise issue", icon: Megaphone },
   ];
 
   const items = isAdmin ? adminItems : officerItems;

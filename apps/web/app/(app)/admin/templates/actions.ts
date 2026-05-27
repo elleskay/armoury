@@ -7,16 +7,22 @@ import { db } from "@/db/client";
 import { templates, templateItems, teams } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
 
+const itemKindEnum = z.enum(["boolean", "text", "number", "dropdown", "date_time"]);
+
 const createTemplateSchema = z.object({
   name: z.string().min(3).max(200),
   description: z.string().max(2000).optional(),
   teamId: z.string().uuid().optional(),
+  status: z.enum(["draft", "published"]).default("published"),
+  frequency: z.enum(["daily", "twice_daily", "weekly", "open"]).default("open"),
+  shiftWindow: z.enum(["am", "pm", "night", "any"]).default("any"),
   items: z
     .array(
       z.object({
         label: z.string().min(1).max(300),
-        kind: z.enum(["boolean", "text", "number"]),
+        kind: itemKindEnum,
         required: z.boolean().default(true),
+        options: z.array(z.string()).optional(),
       }),
     )
     .min(1),
@@ -27,20 +33,36 @@ export async function createTemplate(formData: FormData) {
 
   const labels = formData.getAll("itemLabel").map(String);
   const kinds = formData.getAll("itemKind").map(String);
+  const optionsRaw = formData.getAll("itemOptions").map(String);
 
   const items = labels
-    .map((label, i) => ({
-      label: label.trim(),
-      kind: (kinds[i] ?? "boolean") as "boolean" | "text" | "number",
-      required: true,
-    }))
-    .filter((it) => it.label.length > 0);
+    .map((label, i) => {
+      const trimmed = label.trim();
+      if (!trimmed) return null;
+      const kindStr = kinds[i] ?? "boolean";
+      const kindParse = itemKindEnum.safeParse(kindStr);
+      const kind = kindParse.success ? kindParse.data : "boolean";
+      const options =
+        kind === "dropdown" && optionsRaw[i]
+          ? optionsRaw[i].split(",").map((s) => s.trim()).filter(Boolean)
+          : undefined;
+      return {
+        label: trimmed,
+        kind,
+        required: true,
+        options,
+      };
+    })
+    .filter((it): it is NonNullable<typeof it> => it !== null);
 
   const teamIdRaw = formData.get("teamId");
   const parsed = createTemplateSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
     teamId: teamIdRaw && teamIdRaw !== "" ? teamIdRaw : undefined,
+    status: formData.get("status") ?? "published",
+    frequency: formData.get("frequency") ?? "open",
+    shiftWindow: formData.get("shiftWindow") ?? "any",
     items,
   });
 
@@ -57,6 +79,9 @@ export async function createTemplate(formData: FormData) {
       description: data.description ?? null,
       teamId: data.teamId ?? null,
       createdById: admin.id,
+      status: data.status,
+      frequency: data.frequency,
+      shiftWindow: data.shiftWindow,
     })
     .returning();
 
@@ -67,6 +92,7 @@ export async function createTemplate(formData: FormData) {
       label: it.label,
       kind: it.kind,
       required: it.required,
+      options: it.options ?? null,
     })),
   );
 

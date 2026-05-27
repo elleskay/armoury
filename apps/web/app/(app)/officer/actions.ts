@@ -3,23 +3,27 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/db/client";
-import { submissions, responses, issues, templateItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+import { db } from "@/db/client";
+import { submissions, responses, issues, templateItems, templates } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
 
-const submitSchema = z.object({
-  templateId: z.string().uuid(),
-});
+const submitSchema = z.object({ templateId: z.string().uuid() });
 
 export async function submitChecklist(formData: FormData) {
   const officer = await requireOfficer();
 
-  const parsed = submitSchema.safeParse({
-    templateId: formData.get("templateId"),
-  });
+  const parsed = submitSchema.safeParse({ templateId: formData.get("templateId") });
   if (!parsed.success) throw new Error("Invalid template id");
   const { templateId } = parsed.data;
+
+  const [template] = await db
+    .select()
+    .from(templates)
+    .where(eq(templates.id, templateId))
+    .limit(1);
+  if (!template) throw new Error("Template not found");
 
   const items = await db
     .select()
@@ -32,11 +36,12 @@ export async function submitChecklist(formData: FormData) {
     valueBoolean: boolean | null;
     valueText: string | null;
     valueNumber: number | null;
+    valueDate: Date | null;
     hasIssue: boolean;
     issueNote: string | null;
   }[] = [];
 
-  let allOk = true;
+  let okCount = 0;
 
   for (const item of items) {
     const raw = formData.get(`v:${item.id}`);
@@ -44,51 +49,55 @@ export async function submitChecklist(formData: FormData) {
     let valueBoolean: boolean | null = null;
     let valueText: string | null = null;
     let valueNumber: number | null = null;
-    let hasIssue = false;
+    let valueDate: Date | null = null;
+    let itemOk = true;
 
     if (item.kind === "boolean") {
       valueBoolean = raw === "yes";
-      if (!valueBoolean) {
-        hasIssue = true;
-        allOk = false;
-      }
-    } else if (item.kind === "text") {
+      if (!valueBoolean) itemOk = false;
+    } else if (item.kind === "text" || item.kind === "dropdown") {
       valueText = typeof raw === "string" ? raw.trim() : null;
-      if (item.required && !valueText) {
-        hasIssue = true;
-        allOk = false;
-      }
+      if (item.required && !valueText) itemOk = false;
     } else if (item.kind === "number") {
       const num = raw ? Number(raw) : NaN;
       if (Number.isFinite(num)) valueNumber = num;
-      else if (item.required) {
-        hasIssue = true;
-        allOk = false;
+      else if (item.required) itemOk = false;
+    } else if (item.kind === "date_time") {
+      if (typeof raw === "string" && raw.length > 0) {
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) valueDate = d;
+        else if (item.required) itemOk = false;
+      } else if (item.required) {
+        itemOk = false;
       }
     }
 
     const noteStr = typeof note === "string" && note.trim().length > 0 ? note.trim() : null;
-    if (noteStr) {
-      hasIssue = true;
-      allOk = false;
-    }
+    const hasIssue = !itemOk || !!noteStr;
+
+    if (!hasIssue) okCount += 1;
 
     newResponses.push({
       templateItemId: item.id,
       valueBoolean,
       valueText,
       valueNumber,
+      valueDate,
       hasIssue,
       issueNote: noteStr,
     });
   }
+
+  const score = items.length === 0 ? 100 : Math.round((okCount / items.length) * 100);
 
   const [submission] = await db
     .insert(submissions)
     .values({
       templateId,
       officerId: officer.id,
-      allOk,
+      score,
+      itemCount: items.length,
+      okCount,
     })
     .returning();
 
@@ -101,11 +110,18 @@ export async function submitChecklist(formData: FormData) {
 
   const issuesToInsert = newResponses
     .filter((r) => r.hasIssue)
-    .map((r) => ({
-      submissionId: submission.id,
-      templateItemId: r.templateItemId,
-      note: r.issueNote ?? "Item flagged",
-    }));
+    .map((r) => {
+      const item = items.find((it) => it.id === r.templateItemId)!;
+      return {
+        submissionId: submission.id,
+        templateItemId: r.templateItemId,
+        teamId: template.teamId,
+        raisedById: officer.id,
+        title: item.label,
+        note: r.issueNote ?? `Flagged on ${item.label}`,
+        severity: "medium" as const,
+      };
+    });
 
   if (issuesToInsert.length > 0) {
     await db.insert(issues).values(issuesToInsert);
@@ -114,5 +130,61 @@ export async function submitChecklist(formData: FormData) {
   revalidatePath("/officer");
   revalidatePath("/dashboard");
   revalidatePath("/admin/submissions");
+  revalidatePath("/admin/issues");
   redirect("/officer");
+}
+
+const raiseIssueSchema = z.object({
+  title: z.string().min(3).max(200),
+  note: z.string().min(3).max(2000),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+});
+
+export async function raiseStandaloneIssue(formData: FormData) {
+  const officer = await requireOfficer();
+  const parsed = raiseIssueSchema.safeParse({
+    title: formData.get("title"),
+    note: formData.get("note"),
+    severity: formData.get("severity"),
+  });
+  if (!parsed.success) throw new Error("Invalid input: " + parsed.error.message);
+
+  await db.insert(issues).values({
+    teamId: officer.teamId,
+    raisedById: officer.id,
+    title: parsed.data.title,
+    note: parsed.data.note,
+    severity: parsed.data.severity,
+  });
+
+  revalidatePath("/officer");
+  revalidatePath("/admin/issues");
+  redirect("/officer");
+}
+
+const resolveIssueSchema = z.object({
+  issueId: z.string().uuid(),
+  resolution: z.string().min(3).max(1000),
+});
+
+export async function resolveIssue(formData: FormData) {
+  const officer = await requireOfficer();
+  const parsed = resolveIssueSchema.safeParse({
+    issueId: formData.get("issueId"),
+    resolution: formData.get("resolution"),
+  });
+  if (!parsed.success) throw new Error("Invalid input");
+
+  await db
+    .update(issues)
+    .set({
+      status: "resolved",
+      resolvedAt: new Date(),
+      resolvedById: officer.id,
+      resolution: parsed.data.resolution,
+    })
+    .where(eq(issues.id, parsed.data.issueId));
+
+  revalidatePath("/admin/issues");
+  redirect("/admin/issues");
 }

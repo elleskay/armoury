@@ -17,6 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+export const dynamic = "force-dynamic";
+
 export default async function SubmissionsPage() {
   await requireAdmin();
 
@@ -24,7 +26,9 @@ export default async function SubmissionsPage() {
     .select({
       id: submissions.id,
       submittedAt: submissions.submittedAt,
-      allOk: submissions.allOk,
+      score: submissions.score,
+      itemCount: submissions.itemCount,
+      okCount: submissions.okCount,
       templateName: templates.name,
       officerName: users.name,
     })
@@ -38,7 +42,7 @@ export default async function SubmissionsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Recent submissions"
-        description="All checklist submissions across teams."
+        description="All checklist submissions across teams. Score = % of items passing."
       />
 
       {rows.length === 0 ? (
@@ -55,7 +59,8 @@ export default async function SubmissionsPage() {
                 <TableHead>When</TableHead>
                 <TableHead>Template</TableHead>
                 <TableHead>Officer</TableHead>
-                <TableHead className="text-right">Status</TableHead>
+                <TableHead className="text-right">Items</TableHead>
+                <TableHead className="text-right">Score</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,14 +71,11 @@ export default async function SubmissionsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{row.templateName}</TableCell>
                   <TableCell>{row.officerName}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {row.okCount} / {row.itemCount}
+                  </TableCell>
                   <TableCell className="text-right">
-                    {row.allOk ? (
-                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                        All OK
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">Issues</Badge>
-                    )}
+                    <ScoreBadge score={row.score} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -83,4 +85,19 @@ export default async function SubmissionsPage() {
       )}
     </div>
   );
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  if (score === 100) {
+    return (
+      <Badge
+        variant="secondary"
+        className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+      >
+        100%
+      </Badge>
+    );
+  }
+  if (score >= 80) return <Badge variant="secondary">{score}%</Badge>;
+  return <Badge variant="destructive">{score}%</Badge>;
 }

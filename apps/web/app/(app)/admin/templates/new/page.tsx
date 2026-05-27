@@ -21,7 +21,7 @@ export default async function NewTemplatePage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <PageHeader
         title="New checklist template"
-        description="Create a checklist and assign it to a team."
+        description="Create a checklist, set its schedule, and assign it to a team."
       />
 
       <form action={createTemplate}>
@@ -45,6 +45,49 @@ export default async function NewTemplatePage() {
               <Textarea id="description" name="description" rows={2} />
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select name="status" defaultValue="published">
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Frequency</Label>
+                <Select name="frequency" defaultValue="open">
+                  <SelectTrigger id="frequency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open (anytime)</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="twice_daily">Twice daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shiftWindow">Shift</Label>
+                <Select name="shiftWindow" defaultValue="any">
+                  <SelectTrigger id="shiftWindow">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any shift</SelectItem>
+                    <SelectItem value="am">AM</SelectItem>
+                    <SelectItem value="pm">PM</SelectItem>
+                    <SelectItem value="night">Night</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="teamId">Assign to team</Label>
               <Select name="teamId">
@@ -64,32 +107,39 @@ export default async function NewTemplatePage() {
 
             <fieldset className="space-y-3">
               <Label className="text-sm font-medium">Checklist items</Label>
+              <p className="text-xs text-muted-foreground">
+                For dropdown items, list options comma-separated. Empty items are ignored.
+              </p>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="grid gap-2 sm:grid-cols-[1fr_140px_1fr]">
                   <Input
                     name="itemLabel"
                     type="text"
                     placeholder={
                       i === 0
-                        ? "Required, e.g. Tyres in good condition"
+                        ? "e.g. Tyres in good condition"
                         : "Add another item"
                     }
                   />
                   <Select name="itemKind" defaultValue="boolean">
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="boolean">Yes/No</SelectItem>
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="dropdown">Dropdown</SelectItem>
+                      <SelectItem value="date_time">Date/Time</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    name="itemOptions"
+                    type="text"
+                    placeholder="Dropdown options (a,b,c)"
+                  />
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground">
-                Empty items are ignored. At least one is required.
-              </p>
             </fieldset>
           </CardContent>
         </Card>

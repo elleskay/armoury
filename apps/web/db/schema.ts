@@ -9,17 +9,29 @@ import {
   boolean,
   pgEnum,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["admin", "officer"]);
-export const itemKind = pgEnum("item_kind", ["boolean", "text", "number"]);
-export const issueStatus = pgEnum("issue_status", ["open", "resolved"]);
+export const itemKind = pgEnum("item_kind", [
+  "boolean",
+  "text",
+  "number",
+  "dropdown",
+  "date_time",
+]);
+export const issueStatus = pgEnum("issue_status", ["open", "in_progress", "resolved"]);
 export const agency = pgEnum("agency", ["FRS", "ICA", "SPS", "hospital"]);
+export const templateStatus = pgEnum("template_status", ["draft", "published"]);
+export const frequency = pgEnum("frequency", ["daily", "twice_daily", "weekly", "open"]);
+export const shiftWindow = pgEnum("shift_window", ["am", "pm", "night", "any"]);
+export const issueSeverity = pgEnum("issue_severity", ["low", "medium", "high", "critical"]);
 
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 120 }).notNull(),
   agency: agency("agency").notNull(),
+  webhookUrl: varchar("webhook_url", { length: 500 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -47,10 +59,17 @@ export const templates = pgTable(
     createdById: uuid("created_by_id")
       .references(() => users.id)
       .notNull(),
+    status: templateStatus("status").notNull().default("published"),
+    frequency: frequency("frequency").notNull().default("open"),
+    shiftWindow: shiftWindow("shift_window").notNull().default("any"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index("templates_team_idx").on(t.teamId)],
+  (t) => [
+    index("templates_team_idx").on(t.teamId),
+    index("templates_status_idx").on(t.status),
+  ],
 );
 
 export const templateItems = pgTable(
@@ -64,6 +83,7 @@ export const templateItems = pgTable(
     label: varchar("label", { length: 300 }).notNull(),
     kind: itemKind("kind").notNull().default("boolean"),
     required: boolean("required").notNull().default(true),
+    options: jsonb("options").$type<string[]>(),
   },
   (t) => [index("items_template_idx").on(t.templateId)],
 );
@@ -79,12 +99,15 @@ export const submissions = pgTable(
       .references(() => users.id)
       .notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
-    allOk: boolean("all_ok").notNull().default(true),
+    score: integer("score").notNull().default(100),
+    itemCount: integer("item_count").notNull().default(0),
+    okCount: integer("ok_count").notNull().default(0),
   },
   (t) => [
     index("submissions_template_idx").on(t.templateId),
     index("submissions_officer_idx").on(t.officerId),
     index("submissions_submitted_idx").on(t.submittedAt),
+    index("submissions_score_idx").on(t.score),
   ],
 );
 
@@ -101,6 +124,7 @@ export const responses = pgTable(
     valueBoolean: boolean("value_boolean"),
     valueText: text("value_text"),
     valueNumber: integer("value_number"),
+    valueDate: timestamp("value_date", { withTimezone: true }),
     hasIssue: boolean("has_issue").notNull().default(false),
     issueNote: text("issue_note"),
   },
@@ -111,19 +135,25 @@ export const issues = pgTable(
   "issues",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    submissionId: uuid("submission_id")
-      .references(() => submissions.id, { onDelete: "cascade" })
-      .notNull(),
-    templateItemId: uuid("template_item_id")
-      .references(() => templateItems.id)
-      .notNull(),
+    submissionId: uuid("submission_id").references(() => submissions.id, {
+      onDelete: "cascade",
+    }),
+    templateItemId: uuid("template_item_id").references(() => templateItems.id),
+    teamId: uuid("team_id").references(() => teams.id),
+    raisedById: uuid("raised_by_id").references(() => users.id),
+    title: varchar("title", { length: 200 }).notNull(),
     note: text("note").notNull(),
+    severity: issueSeverity("severity").notNull().default("medium"),
     status: issueStatus("status").notNull().default("open"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedById: uuid("resolved_by_id").references(() => users.id),
+    resolution: text("resolution"),
   },
   (t) => [
     index("issues_status_idx").on(t.status),
+    index("issues_severity_idx").on(t.severity),
+    index("issues_team_idx").on(t.teamId),
     index("issues_submission_idx").on(t.submissionId),
   ],
 );
@@ -171,6 +201,9 @@ export const issuesRelations = relations(issues, ({ one }) => ({
     fields: [issues.templateItemId],
     references: [templateItems.id],
   }),
+  team: one(teams, { fields: [issues.teamId], references: [teams.id] }),
+  raisedBy: one(users, { fields: [issues.raisedById], references: [users.id] }),
+  resolvedBy: one(users, { fields: [issues.resolvedById], references: [users.id] }),
 }));
 
 export type User = typeof users.$inferSelect;
