@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default async function SubmitPage({
   params,
@@ -80,6 +87,26 @@ export default async function SubmitPage({
                       name={`v:${item.id}`}
                       required={item.required}
                       className="w-32"
+                    />
+                  ) : item.kind === "dropdown" ? (
+                    <Select name={`v:${item.id}`} required={item.required}>
+                      <SelectTrigger className="w-64">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(item.options ?? []).map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : item.kind === "date_time" ? (
+                    <Input
+                      type="datetime-local"
+                      name={`v:${item.id}`}
+                      required={item.required}
+                      className="w-64"
                     />
                   ) : (
                     <Input
