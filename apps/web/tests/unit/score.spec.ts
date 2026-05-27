@@ -1,4 +1,4 @@
-import { specTest, expect } from "@platform/spec-test/vitest";
+import { specTest, expect } from "../../test-lib/spec-test/dist/vitest.js";
 import { computeScore } from "@/lib/score";
 
 specTest(

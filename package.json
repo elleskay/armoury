@@ -4,8 +4,7 @@
   "private": true,
   "description": "Digital equipment checklist system for frontline teams. Built on the elleskay/platform template.",
   "workspaces": [
-    "apps/*",
-    "apps/web/test-lib/*"
+    "apps/*"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",

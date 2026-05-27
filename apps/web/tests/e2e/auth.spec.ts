@@ -1,4 +1,4 @@
-import { specTest, expect } from "@platform/spec-test/playwright";
+import { specTest, expect } from "../../test-lib/spec-test/dist/playwright.js";
 import { signInAsAdmin, signInAsOfficer } from "./fixtures";
 
 specTest(

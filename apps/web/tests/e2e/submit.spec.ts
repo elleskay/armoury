@@ -1,4 +1,4 @@
-import { specTest, expect } from "@platform/spec-test/playwright";
+import { specTest, expect } from "../../test-lib/spec-test/dist/playwright.js";
 import { signInAsOfficer } from "./fixtures";
 
 async function openFireTruckSubmit(page: import("@playwright/test").Page) {
