@@ -90,12 +90,12 @@ export default async function NewTemplatePage() {
 
             <div className="space-y-2">
               <Label htmlFor="teamId">Assign to team</Label>
-              <Select name="teamId">
+              <Select name="teamId" defaultValue="__all__">
                 <SelectTrigger id="teamId">
-                  <SelectValue placeholder="All teams" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All teams</SelectItem>
+                  <SelectItem value="__all__">All teams</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name} ({team.agency})

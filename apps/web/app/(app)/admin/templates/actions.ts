@@ -56,10 +56,14 @@ export async function createTemplate(formData: FormData) {
     .filter((it): it is NonNullable<typeof it> => it !== null);
 
   const teamIdRaw = formData.get("teamId");
+  const teamIdNormalized =
+    teamIdRaw && teamIdRaw !== "" && teamIdRaw !== "__all__"
+      ? teamIdRaw
+      : undefined;
   const parsed = createTemplateSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
-    teamId: teamIdRaw && teamIdRaw !== "" ? teamIdRaw : undefined,
+    teamId: teamIdNormalized,
     status: formData.get("status") ?? "published",
     frequency: formData.get("frequency") ?? "open",
     shiftWindow: formData.get("shiftWindow") ?? "any",
