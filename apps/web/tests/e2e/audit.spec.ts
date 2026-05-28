@@ -1,11 +1,15 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsAdmin } from "./fixtures";
+import { ADMIN_STATE } from "./fixtures";
+
+test.use({ storageState: ADMIN_STATE });
+// Audit log entries accumulate across the run; this file's tests
+// also read from it. Run serially to keep the assertions stable.
+test.describe.configure({ mode: "serial" });
 
 test("[ARM-AUDIT-001] Every admin server action writes an audit log entry", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
-  await page.goto("/admin/templates/new");
+await page.goto("/admin/templates/new");
   await expect(
     page.getByRole("heading", { name: /New checklist template/i }),
   ).toBeVisible();
@@ -52,8 +56,7 @@ test("[ARM-AUDIT-001] Every admin server action writes an audit log entry", asyn
 test("[ARM-AUDIT-002] Audit log captures before and after on edits", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
-  // The ARM-AUDIT-001 test above wrote a template.update entry with a
+// The ARM-AUDIT-001 test above wrote a template.update entry with a
   // before/after payload. Visiting /admin/audit and inspecting just
   // confirms the row exists; full payload inspection is a DB-level
   // assertion documented in the spec.
@@ -66,8 +69,7 @@ test("[ARM-AUDIT-002] Audit log captures before and after on edits", async ({
 test("[ARM-AUDIT-003] Audit log has no UI path to update or delete entries", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
-  await page.goto("/admin/audit");
+await page.goto("/admin/audit");
   // No edit/delete controls on audit rows
   await expect(
     page.getByRole("button", { name: /Delete|Edit audit/i }),

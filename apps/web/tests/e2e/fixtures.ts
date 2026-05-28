@@ -4,12 +4,23 @@ export const ADMIN_EMAIL = "admin@armoury.test";
 export const OFFICER_EMAIL = "officer@armoury.test";
 export const TEST_PASSWORD = "password123";
 
+export const AUTH_DIR = "playwright/.auth";
+export const ADMIN_STATE = `${AUTH_DIR}/admin.json`;
+export const OFFICER_STATE = `${AUTH_DIR}/officer.json`;
+export const OFFICER2_STATE = `${AUTH_DIR}/officer2.json`;
+export const NURSE_STATE = `${AUTH_DIR}/nurse.json`;
+
+/**
+ * Sign in via the UI. Most tests should NOT call this; instead they
+ * declare `test.use({ storageState: ADMIN_STATE })` at the top of the
+ * file so they start authenticated. Use signIn only when the test
+ * itself exercises the sign-in flow (ARM-AUTH-*).
+ */
 export async function signIn(
   page: Page,
   email: string,
   password = TEST_PASSWORD,
 ): Promise<void> {
-  // Defensive: drop any leftover session from a prior signIn in this test.
   await page.context().clearCookies();
   await page.goto("/login", { waitUntil: "domcontentloaded" });
   await page
@@ -32,14 +43,8 @@ export async function signInAsOfficer(page: Page): Promise<void> {
 }
 
 /**
- * Signs out by driving the UI sign-out flow. clearCookies() turned out
- * not to be sufficient to invalidate the Auth.js session in CI: the
- * session token survives a Playwright clearCookies and goto /login
- * gets redirected back to /dashboard.
- *
- * Waits up to 5 seconds for one of the seeded user-name buttons to
- * become visible, then clicks the user menu and the Sign out menuitem.
- * If no button appears, falls back to clearCookies as a last resort.
+ * Sign out via the UI. Tests that need a clean unauthenticated context
+ * usually prefer clearing cookies directly (or just don't sign in).
  */
 export async function signOut(page: Page): Promise<void> {
   const candidates = [/Officer One/, /Officer Two/, /Admin User/, /Nurse Lim/];

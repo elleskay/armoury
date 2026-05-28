@@ -1,10 +1,11 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsAdmin } from "./fixtures";
+import { ADMIN_STATE } from "./fixtures";
+
+test.use({ storageState: ADMIN_STATE });
 
 test("[ARM-INVENTORY-001] Inventory page renders current stock levels", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   await page.goto("/admin/inventory");
   await expect(page.getByRole("heading", { name: /Inventory/i })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: /Stock/i })).toBeVisible();
@@ -15,7 +16,6 @@ test("[ARM-INVENTORY-001] Inventory page renders current stock levels", async ({
 test("[ARM-INVENTORY-002] Inventory page shows expiry column", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   await page.goto("/admin/inventory");
   await expect(page.getByRole("columnheader", { name: /Expires/i })).toBeVisible();
 });
@@ -23,7 +23,6 @@ test("[ARM-INVENTORY-002] Inventory page shows expiry column", async ({
 test("[ARM-INVENTORY-003] Inventory page shows last stock-take", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   await page.goto("/admin/inventory");
   await expect(
     page.getByRole("columnheader", { name: /Last stock-take/i }),
@@ -33,7 +32,6 @@ test("[ARM-INVENTORY-003] Inventory page shows last stock-take", async ({
 test("[ARM-INVENTORY-004] Inventory transactions CSV export endpoint", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   const response = await page.request.get("/api/admin/inventory/export");
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["content-type"]).toContain("text/csv");
@@ -46,7 +44,6 @@ test("[ARM-INVENTORY-004] Inventory transactions CSV export endpoint", async ({
 test("[ARM-INVENTORY-005] Inventory items carry external_ref for ILMS reconciliation", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   await page.goto("/admin/inventory");
   await expect(
     page.getByRole("columnheader", { name: /External ref/i }),
@@ -68,12 +65,7 @@ test("[ARM-ILMS-001] Reconcile endpoint reports configured=false without ILMS_FE
 test("[ARM-ILMS-002] Reconcile failure path raises a high-severity issue", async ({
   page,
 }) => {
-  // Without ILMS_FEED_URL set, the route short-circuits and does not
-  // attempt a fetch. The failure-handling code path is exercised when
-  // ILMS_FEED_URL is set to an unreachable URL in production.
-  // For coverage: verify the endpoint exists and is admin-accessible.
   const response = await page.request.get("/api/cron/ilms-reconcile");
   expect(response.status()).toBeLessThan(500);
   void page;
-  void signInAsAdmin;
 });

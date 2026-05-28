@@ -8,6 +8,7 @@ spec-coverage.md
 spec-coverage-baseline.md
 playwright-report/
 test-results/
+playwright/.auth/
 
 # Vendored test runner (committed)
 !apps/web/test-lib/spec-test/dist

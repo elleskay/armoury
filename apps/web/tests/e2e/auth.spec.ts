@@ -1,6 +1,10 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
 import { signInAsAdmin, signInAsOfficer } from "./fixtures";
 
+// Auth flow tests must start unauthenticated regardless of the project's
+// default storageState. Override to an empty state.
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test("[ARM-AUTH-001] Unauthenticated GET /admin/* redirects to /login", async ({
   page,
 }) => {

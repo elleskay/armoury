@@ -1,10 +1,11 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsAdmin } from "./fixtures";
+import { ADMIN_STATE } from "./fixtures";
+
+test.use({ storageState: ADMIN_STATE });
 
 test("[ARM-DASHBOARD-008] Admin can bulk-export a month of submissions (legacy)", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -22,7 +23,6 @@ test("[ARM-DASHBOARD-008] Admin can bulk-export a month of submissions (legacy)"
 test("[ARM-EXPORT-001] Monthly export returns a real ZIP archive", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -43,7 +43,6 @@ test("[ARM-EXPORT-001] Monthly export returns a real ZIP archive", async ({
 test("[ARM-EXPORT-002] ZIP archive contains a manifest.json", async ({
   page,
 }) => {
-  await signInAsAdmin(page);
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");

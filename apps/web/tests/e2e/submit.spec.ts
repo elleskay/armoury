@@ -1,9 +1,10 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsOfficer } from "./fixtures";
+import { OFFICER_STATE } from "./fixtures";
 import type { Page } from "@playwright/test";
 
+test.use({ storageState: OFFICER_STATE });
+
 async function openFireTruckSubmit(page: Page) {
-  await signInAsOfficer(page);
   await page.goto("/officer");
   await page.getByRole("link", { name: /Fire Truck Daily Check/i }).click();
   await expect(
@@ -38,7 +39,6 @@ test("[ARM-ITEMS-003] Item kind text renders a text input", async ({ page }) => 
 test("[ARM-ITEMS-005] Item kind date_time renders a datetime-local input", async ({
   page,
 }) => {
-  await signInAsOfficer(page);
   await page.goto("/officer");
   await page.getByRole("link", { name: /Ambulance Equipment Audit/i }).click();
   await expect(
@@ -188,7 +188,6 @@ test("[ARM-SUBMIT-004] Recent submissions card shows template, items, and score"
 test("[ARM-SCHED-008] Past Checks view lists historical submissions", async ({
   page,
 }) => {
-  await signInAsOfficer(page);
   // Make a submission so there's something to show
   await openFireTruckSubmit(page);
   await page.getByRole("spinbutton").fill("13000");
@@ -292,7 +291,6 @@ test("[ARM-SUBMIT-012] Network failure during submit surfaces an error", async (
 test("[ARM-SUBMIT-008] Required date_time left empty flags the item", async ({
   page,
 }) => {
-  await signInAsOfficer(page);
   await page.goto("/officer");
   await page.getByRole("link", { name: /Ambulance Equipment Audit/i }).click();
   await expect(
