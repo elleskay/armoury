@@ -111,6 +111,13 @@ async function main() {
       options: ["Clean", "Needs cleaning", "Damaged"],
     },
     { templateId: tmpl1.id, position: 6, label: "Notes", kind: "text", required: false },
+    {
+      templateId: tmpl1.id,
+      position: 7,
+      label: "Dashboard photo",
+      kind: "photo",
+      required: false,
+    },
 
     // Ambulance Equipment
     { templateId: tmpl2.id, position: 1, label: "Defibrillator charged", kind: "boolean" },

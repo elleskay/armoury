@@ -115,6 +115,14 @@ export default async function SubmitPage({
                       required={item.required}
                       className="w-64"
                     />
+                  ) : item.kind === "photo" ? (
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      name={`v:${item.id}`}
+                      required={item.required}
+                      className="w-64"
+                    />
                   ) : (
                     <Input
                       type="text"

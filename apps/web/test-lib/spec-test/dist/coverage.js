@@ -26,8 +26,17 @@ export function readCoverage(path = getCoveragePath()) {
         .map((l) => JSON.parse(l));
 }
 export function resetCoverage(path = getCoveragePath()) {
-    if (existsSync(path)) {
-        unlinkSync(path);
+    try {
+        if (existsSync(path)) {
+            unlinkSync(path);
+        }
+    }
+    catch (err) {
+        // Race: another setup file may have unlinked it between existsSync and
+        // unlinkSync. Safe to ignore ENOENT.
+        const code = err.code;
+        if (code !== "ENOENT")
+            throw err;
     }
 }
 //# sourceMappingURL=coverage.js.map

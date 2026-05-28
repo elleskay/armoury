@@ -19,6 +19,7 @@ export const itemKind = pgEnum("item_kind", [
   "number",
   "dropdown",
   "date_time",
+  "photo",
 ]);
 export const issueStatus = pgEnum("issue_status", ["open", "in_progress", "resolved"]);
 export const agency = pgEnum("agency", ["FRS", "ICA", "SPS", "hospital"]);

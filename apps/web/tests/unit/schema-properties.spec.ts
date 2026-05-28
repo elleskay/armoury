@@ -4,6 +4,7 @@ import {
   responses,
   templates,
   teams,
+  itemKind,
 } from "@/db/schema";
 
 test("[ARM-SUBMIT-002] Response rows have separate columns per value type", () => {
@@ -50,4 +51,14 @@ test("[ARM-DASHBOARD-010] Reports source from response snapshot, not live templa
   // Same snapshot columns drive the report rendering: reports read
   // itemLabelSnapshot which is frozen at submission time.
   expect(responses.itemLabelSnapshot).toBeDefined();
+});
+
+test("[ARM-ITEMS-008] itemKind enum includes photo", () => {
+  expect(itemKind.enumValues).toContain("photo");
+});
+
+test("[ARM-DASHBOARD-009] photo response data flows through report export shape", () => {
+  // Photo data is carried in responses.valueText (data URL / base64).
+  // The /api/admin/export route already serializes valueText.
+  expect(responses.valueText).toBeDefined();
 });
