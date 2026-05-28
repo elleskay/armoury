@@ -64,7 +64,7 @@ async function main() {
     ])
     .returning();
 
-  const [tmpl1, tmpl2, tmpl3] = await db
+  const [tmpl1, tmpl2, tmpl3, tmpl4, tmpl5, tmpl6] = await db
     .insert(schema.templates)
     .values([
       {
@@ -92,6 +92,33 @@ async function main() {
         createdById: admin.id,
         status: "published",
         frequency: "twice_daily",
+        shiftWindow: "any",
+      },
+      {
+        name: "Engine 1 Vehicle Parade",
+        description: "Daily vehicle parade with full history per chassis",
+        teamId: team1.id,
+        createdById: admin.id,
+        status: "published",
+        frequency: "daily",
+        shiftWindow: "am",
+      },
+      {
+        name: "Weekly Hazmat Inspection",
+        description: "Weekly EMS Hazmat readiness check",
+        teamId: team1.id,
+        createdById: admin.id,
+        status: "published",
+        frequency: "weekly",
+        shiftWindow: "any",
+      },
+      {
+        name: "MRT Shelter Bishan Daily",
+        description: "Location-bound checklist for MRT Shelter Bishan",
+        teamId: null,
+        createdById: admin.id,
+        status: "published",
+        frequency: "daily",
         shiftWindow: "any",
       },
     ])
@@ -149,6 +176,37 @@ async function main() {
       kind: "text",
       required: false,
     },
+
+    // Engine 1 Vehicle Parade
+    {
+      templateId: tmpl4.id,
+      position: 1,
+      label: "Outgoing callsign",
+      kind: "text",
+    },
+    {
+      templateId: tmpl4.id,
+      position: 2,
+      label: "Incoming callsign",
+      kind: "text",
+    },
+    { templateId: tmpl4.id, position: 3, label: "Vehicle ID", kind: "text" },
+    {
+      templateId: tmpl4.id,
+      position: 4,
+      label: "Mileage at parade",
+      kind: "number",
+    },
+
+    // Weekly Hazmat Inspection
+    { templateId: tmpl5.id, position: 1, label: "Decon shower operational", kind: "boolean" },
+    { templateId: tmpl5.id, position: 2, label: "Level A suits in stock", kind: "number" },
+    { templateId: tmpl5.id, position: 3, label: "Air monitors calibrated", kind: "boolean" },
+
+    // MRT Shelter Bishan
+    { templateId: tmpl6.id, position: 1, label: "Shelter location", kind: "text" },
+    { templateId: tmpl6.id, position: 2, label: "Ventilation operational", kind: "boolean" },
+    { templateId: tmpl6.id, position: 3, label: "Emergency exits clear", kind: "boolean" },
   ]);
 
   await pool.end();
