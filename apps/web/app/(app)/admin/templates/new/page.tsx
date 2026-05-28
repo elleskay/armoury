@@ -131,6 +131,7 @@ export default async function NewTemplatePage() {
                       <SelectItem value="number">Number</SelectItem>
                       <SelectItem value="dropdown">Dropdown</SelectItem>
                       <SelectItem value="date_time">Date/Time</SelectItem>
+                      <SelectItem value="photo">Photo</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
