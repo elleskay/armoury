@@ -49,7 +49,7 @@ export default async function SubmitPage({
         description={template.description ?? undefined}
       />
 
-      <form action={submitChecklist}>
+      <form action={submitChecklist} encType="multipart/form-data">
         <input type="hidden" name="templateId" value={template.id} />
         <Card>
           <CardContent className="space-y-6 p-6">

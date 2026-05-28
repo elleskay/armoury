@@ -98,6 +98,17 @@ export default async function SubmissionDetailPage({
                       <div className="text-xs text-muted-foreground">
                         Type: {r.itemKindSnapshot ?? "unknown"}
                       </div>
+                      {r.itemKindSnapshot === "photo" &&
+                        r.valueText &&
+                        r.valueText.startsWith("data:image/") && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.valueText}
+                            alt={r.itemLabelSnapshot ?? "photo"}
+                            data-testid="photo-response"
+                            className="mt-2 max-h-64 rounded-md border"
+                          />
+                        )}
                       {r.issueNote && (
                         <div className="mt-1 rounded-md bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                           {r.issueNote}

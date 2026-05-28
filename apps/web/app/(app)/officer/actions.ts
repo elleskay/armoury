@@ -112,6 +112,21 @@ export async function submitChecklist(formData: FormData) {
       } else if (item.required) {
         itemOk = false;
       }
+    } else if (item.kind === "photo") {
+      if (raw instanceof File && raw.size > 0) {
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+        if (raw.size > MAX_SIZE) {
+          if (item.required) itemOk = false;
+        } else if (!ALLOWED.includes(raw.type)) {
+          if (item.required) itemOk = false;
+        } else {
+          const bytes = Buffer.from(await raw.arrayBuffer());
+          valueText = `data:${raw.type};base64,${bytes.toString("base64")}`;
+        }
+      } else if (item.required) {
+        itemOk = false;
+      }
     }
 
     const noteStr = typeof note === "string" && note.trim().length > 0 ? note.trim() : null;
