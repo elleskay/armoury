@@ -12,7 +12,13 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 
-export const userRole = pgEnum("user_role", ["admin", "officer"]);
+export const userRole = pgEnum("user_role", [
+  "admin",
+  "officer",
+  "logs_ic",
+  "team_admin",
+  "hq",
+]);
 export const itemKind = pgEnum("item_kind", [
   "boolean",
   "text",
@@ -33,6 +39,7 @@ export const teams = pgTable("teams", {
   name: varchar("name", { length: 120 }).notNull(),
   agency: agency("agency").notNull(),
   webhookUrl: varchar("webhook_url", { length: 500 }),
+  telegramChatId: varchar("telegram_chat_id", { length: 100 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -49,6 +56,26 @@ export const users = pgTable(
   },
   (t) => [index("users_team_idx").on(t.teamId)],
 );
+
+export const inviteCodes = pgTable(
+  "invite_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 32 }).notNull().unique(),
+    teamId: uuid("team_id").references(() => teams.id, { onDelete: "cascade" }),
+    role: userRole("role").notNull().default("officer"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+    redeemedById: uuid("redeemed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("invite_codes_code_idx").on(t.code),
+    index("invite_codes_team_idx").on(t.teamId),
+  ],
+);
+
+export type InviteCode = typeof inviteCodes.$inferSelect;
 
 export const templates = pgTable(
   "templates",

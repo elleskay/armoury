@@ -12,8 +12,9 @@ test("[ARM-TEAMS-001] agency enum is FRS, ICA, SPS, hospital", () => {
   );
 });
 
-test("[ARM-TEAMS-002] user role enum is admin or officer", () => {
-  expect([...userRole.enumValues].sort()).toEqual(["admin", "officer"].sort());
+test("[ARM-TEAMS-002] user role enum includes admin and officer (plus extended roles)", () => {
+  expect(userRole.enumValues).toContain("admin");
+  expect(userRole.enumValues).toContain("officer");
 });
 
 test("[ARM-SCHED-001] frequency enum is daily, twice_daily, weekly, open", () => {

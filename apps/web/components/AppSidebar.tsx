@@ -43,7 +43,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export interface NavUser {
   name: string;
   email: string;
-  role: "admin" | "officer";
+  role: "admin" | "officer" | "logs_ic" | "team_admin" | "hq";
 }
 
 interface AppSidebarProps {

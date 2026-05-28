@@ -1,15 +1,17 @@
 import type { DefaultSession } from "next-auth";
 
+export type AppUserRole = "admin" | "officer" | "logs_ic" | "team_admin" | "hq";
+
 declare module "next-auth" {
   interface User {
-    role: "admin" | "officer";
+    role: AppUserRole;
     teamId: string | null;
   }
 
   interface Session {
     user: {
       id: string;
-      role: "admin" | "officer";
+      role: AppUserRole;
       teamId: string | null;
     } & DefaultSession["user"];
   }
@@ -17,7 +19,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role?: "admin" | "officer";
+    role?: AppUserRole;
     teamId?: string | null;
     uid?: string;
   }

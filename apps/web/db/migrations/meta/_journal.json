@@ -50,6 +50,13 @@
       "when": 1779976281924,
       "tag": "0006_fast_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779978754171,
+      "tag": "0007_ancient_naoko",
+      "breakpoints": true
     }
   ]
 }
