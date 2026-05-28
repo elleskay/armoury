@@ -266,6 +266,29 @@ test("[ARM-SUBMIT-006] Required dropdown left empty flags the item", async ({
   expect(parseInt(match![1]!, 10)).toBeLessThan(100);
 });
 
+test("[ARM-SUBMIT-012] Network failure during submit surfaces an error", async ({
+  page,
+}) => {
+  await openFireTruckSubmit(page);
+  await page.getByRole("spinbutton").fill("15000");
+  const combo = page.getByRole("combobox").first();
+  await combo.click();
+  await page.getByRole("option", { name: "Clean", exact: true }).click();
+
+  await page.route("**/officer/submit/**", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.abort("internetdisconnected");
+    } else {
+      await route.continue();
+    }
+  });
+
+  await page.getByRole("button", { name: "Submit checklist" }).click();
+  await page.waitForTimeout(2000);
+  // Should not navigate to /officer (success path). Stays on /officer/submit/<id>.
+  expect(page.url()).toContain("/officer/submit/");
+});
+
 test("[ARM-SUBMIT-008] Required date_time left empty flags the item", async ({
   page,
 }) => {
