@@ -74,6 +74,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx tsx db/migrate.ts
 
+      - name: Seed demo data (idempotent)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx db/seed-demo.ts
+
       - name: Build Next.js with OpenNext
         working-directory: ${{ env.APP_DIR }}
         env:

@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env.local db/migrate.ts",
     "db:seed": "tsx --env-file=.env.local db/seed.ts",
+    "db:seed:demo": "tsx db/seed-demo.ts",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
