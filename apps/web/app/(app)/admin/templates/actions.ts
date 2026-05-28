@@ -28,7 +28,7 @@ async function recordAudit(
   }
 }
 
-const itemKindEnum = z.enum(["boolean", "text", "number", "dropdown", "date_time"]);
+const itemKindEnum = z.enum(["boolean", "text", "number", "dropdown", "date_time", "photo"]);
 
 const createTemplateSchema = z.object({
   name: z.string().min(3).max(200),
