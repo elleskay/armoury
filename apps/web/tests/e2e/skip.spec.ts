@@ -1,5 +1,8 @@
 import { test, expect } from "../../test-lib/spec-test/dist/playwright.js";
-import { signInAsOfficer } from "./fixtures";
+import { OFFICER_STATE } from "./fixtures";
+
+test.use({ storageState: OFFICER_STATE });
+test.describe.configure({ mode: "serial" });
 
 test("[ARM-SCHED-007] Cron endpoint reports upcoming reminders", async ({
   page,
@@ -36,7 +39,6 @@ test("[ARM-EMAIL-002] Reminder route returns at least one would-remind in the se
 test("[ARM-SCHED-005] Officer can skip a check with a reason", async ({
   page,
 }) => {
-  await signInAsOfficer(page);
   await page.goto("/officer");
 
   const submitHref = await page
@@ -56,12 +58,17 @@ test("[ARM-SCHED-005] Officer can skip a check with a reason", async ({
 
   await expect(page.getByText(/Skipped today/i)).toBeVisible();
   await expect(page.getByRole("link", { name: /Unskip/ }).first()).toBeVisible();
+
+  // Cleanup: unskip so submit.spec.ts (alphabetically later) still sees
+  // Fire Truck on /officer. Tests share the officer + DB.
+  await page.goto(`/officer/skip/${templateId}?action=unskip`);
+  await page.getByRole("button", { name: /^Unskip$/ }).click();
+  await expect(page).toHaveURL(/\/officer$/);
 });
 
 test("[ARM-SCHED-006] Officer can unskip a previously skipped check", async ({
   page,
 }) => {
-  await signInAsOfficer(page);
   await page.goto("/officer");
 
   const submitHref = await page

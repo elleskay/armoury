@@ -7,11 +7,6 @@ const actionsSource = readFileSync(
   "utf8",
 );
 
-const submitPageSource = readFileSync(
-  resolve(__dirname, "../../app/(app)/officer/submit/[templateId]/page.tsx"),
-  "utf8",
-);
-
 const submissionDetailSource = readFileSync(
   resolve(__dirname, "../../app/(app)/admin/submissions/[id]/page.tsx"),
   "utf8",
