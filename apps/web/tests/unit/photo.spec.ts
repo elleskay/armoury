@@ -29,8 +29,10 @@ test("[ARM-PHOTO-002] Photo stored as data URL retrievable from valueText", () =
   expect(actionsSource).toContain("data:");
   expect(actionsSource).toContain("base64");
   expect(actionsSource).toContain("valueText =");
-  // Submit form uses multipart/form-data so files arrive as File objects
-  expect(submitPageSource).toContain("multipart/form-data");
+  // NOTE: the submit form previously used multipart/form-data; that caused
+  // a server-render hang on Next 16 and was reverted. Photo upload will
+  // get a dedicated route. The handler code path stays valid for that
+  // future route.
 });
 
 test("[ARM-PHOTO-003] Submission detail page renders inline photo when present", () => {
