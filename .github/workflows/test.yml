@@ -60,10 +60,10 @@ jobs:
       - name: E2E specs (playwright)
         working-directory: apps/web
         run: npm run test:e2e
-      - name: Spec coverage report (loose, gate not yet enforced)
+      - name: Spec coverage gate (strict — fails on uncovered)
         working-directory: apps/web
         if: always()
-        run: npm run test:coverage:loose
+        run: npm run test:coverage
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
