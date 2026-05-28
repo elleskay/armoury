@@ -14,6 +14,7 @@ import {
   History,
   LogOut,
   Megaphone,
+  Package,
   ScrollText,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -59,6 +60,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
     { href: "/admin/templates", label: "Templates", icon: ClipboardList },
     { href: "/admin/submissions", label: "Submissions", icon: FileCheck2 },
     { href: "/admin/issues", label: "Issues", icon: AlertTriangle },
+    { href: "/admin/inventory", label: "Inventory", icon: Package },
     { href: "/admin/audit", label: "Audit log", icon: ScrollText },
   ];
 
