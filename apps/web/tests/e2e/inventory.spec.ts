@@ -8,8 +8,10 @@ test("[ARM-INVENTORY-001] Inventory page renders current stock levels", async ({
 }) => {
   await page.goto("/admin/inventory");
   await expect(page.getByRole("heading", { name: /Inventory/i })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: /Stock/i })).toBeVisible();
-  // Seeded items
+  // 'Stock' regex matched both 'Stock' and 'Last stock-take' columns; pin exact.
+  await expect(
+    page.getByRole("columnheader", { name: "Stock", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/Adrenaline 1mg/)).toBeVisible();
 });
 
