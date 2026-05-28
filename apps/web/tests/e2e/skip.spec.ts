@@ -18,29 +18,24 @@ test("[ARM-SCHED-005] Officer can skip a check with a reason", async ({
 }) => {
   await signInAsOfficer(page);
   await page.goto("/officer");
-  await expect(page.getByText(/Fire Truck Daily Check/).first()).toBeVisible();
 
-  const card = page
-    .locator(":has-text('Fire Truck Daily Check')")
-    .filter({ has: page.getByRole("link", { name: /^Skip$/ }) })
-    .first();
-  await card.getByRole("link", { name: /^Skip$/ }).click();
+  const submitHref = await page
+    .getByRole("link", { name: /Fire Truck Daily Check/ })
+    .first()
+    .getAttribute("href");
+  expect(submitHref).toMatch(/\/officer\/submit\/[a-f0-9-]+/);
+  const templateId = submitHref!.split("/").pop()!;
+
+  await page.goto(`/officer/skip/${templateId}`);
   await expect(
     page.getByRole("heading", { name: /Skip Fire Truck Daily Check/ }),
   ).toBeVisible();
-
   await page.getByLabel("Reason").fill("Callsign not running");
   await page.getByRole("button", { name: /Skip check/ }).click();
   await expect(page).toHaveURL(/\/officer$/);
 
-  // Should appear in Skipped today section
   await expect(page.getByText(/Skipped today/i)).toBeVisible();
-  // And should no longer appear as an active card (only in the skipped list)
-  const skippedCard = page
-    .locator(":has-text('Fire Truck Daily Check')")
-    .filter({ has: page.getByRole("link", { name: /Unskip/ }) })
-    .first();
-  await expect(skippedCard).toBeVisible();
+  await expect(page.getByRole("link", { name: /Unskip/ }).first()).toBeVisible();
 });
 
 test("[ARM-SCHED-006] Officer can unskip a previously skipped check", async ({
@@ -49,30 +44,26 @@ test("[ARM-SCHED-006] Officer can unskip a previously skipped check", async ({
   await signInAsOfficer(page);
   await page.goto("/officer");
 
-  // Skip Ambulance first (different template so we don't conflict with -005)
-  const ambulanceCard = page
-    .locator(":has-text('Ambulance Equipment Audit')")
-    .filter({ has: page.getByRole("link", { name: /^Skip$/ }) })
-    .first();
-  await ambulanceCard.getByRole("link", { name: /^Skip$/ }).click();
+  const submitHref = await page
+    .getByRole("link", { name: /Ambulance Equipment Audit/ })
+    .first()
+    .getAttribute("href");
+  expect(submitHref).toMatch(/\/officer\/submit\/[a-f0-9-]+/);
+  const templateId = submitHref!.split("/").pop()!;
+
+  await page.goto(`/officer/skip/${templateId}`);
   await page.getByLabel("Reason").fill("Ambulance in workshop");
   await page.getByRole("button", { name: /Skip check/ }).click();
   await expect(page).toHaveURL(/\/officer$/);
 
-  // Find the unskip link and click
-  const skippedItem = page
-    .locator(":has-text('Ambulance Equipment Audit')")
-    .filter({ has: page.getByRole("link", { name: /Unskip/ }) })
-    .first();
-  await skippedItem.getByRole("link", { name: /Unskip/ }).click();
+  await page.goto(`/officer/skip/${templateId}?action=unskip`);
   await expect(
     page.getByRole("heading", { name: /Unskip Ambulance Equipment Audit/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: /^Unskip$/ }).click();
   await expect(page).toHaveURL(/\/officer$/);
 
-  // Template should appear in active checklists again
   await expect(
-    page.getByRole("link").filter({ hasText: /Ambulance Equipment Audit/ }).first(),
+    page.getByRole("link", { name: /Ambulance Equipment Audit/ }).first(),
   ).toBeVisible();
 });

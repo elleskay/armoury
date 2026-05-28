@@ -913,3 +913,335 @@ requirements:
     when: They GET /dashboard
     then: P50 time-to-interactive is under 2000ms
     tags: [performance, unbuilt]
+
+  # ============================================================
+  # ARM-ROLES: extended user roles (Logs IC, Team Admin, HQ)
+  # ============================================================
+
+  - id: ARM-ROLES-001
+    title: Logs IC role exists for inventory control officers
+    category: security
+    severity: high
+    given: User role enum
+    when: A Logs IC is created
+    then: The user has a role distinct from admin and officer for routing issue alerts and inventory transactions
+    tags: [roles, logs-ic, unbuilt]
+
+  - id: ARM-ROLES-002
+    title: Team Admin role for station-level administration
+    category: security
+    severity: medium
+    given: A station team
+    when: A user is assigned team-admin role within that team
+    then: They can edit team-scoped templates and resolve issues for their team only
+    tags: [roles, team-admin, unbuilt]
+
+  - id: ARM-ROLES-003
+    title: HQ / Divisional Lead read-only access to all teams
+    category: security
+    severity: medium
+    given: HQ user role
+    when: They view dashboards
+    then: They see all teams metrics but cannot edit templates or resolve issues
+    tags: [roles, hq, unbuilt]
+
+  # ============================================================
+  # ARM-NOTIFY: notification channels and routing
+  # ============================================================
+
+  - id: ARM-NOTIFY-001
+    title: Telegram notification dispatch on issue raise
+    category: functional
+    severity: medium
+    given: A team configured with a Telegram chat ID
+    when: An issue is raised
+    then: A Telegram message is posted to the configured chat
+    tags: [notifications, telegram, unbuilt]
+
+  - id: ARM-NOTIFY-002
+    title: Logs IC alert routing for inventory-related issues
+    category: functional
+    severity: medium
+    given: An issue tagged inventory
+    when: The issue is raised
+    then: Logs IC receives the alert in addition to team admin
+    tags: [notifications, logs-ic, routing, unbuilt]
+
+  - id: ARM-NOTIFY-003
+    title: Shift-level reminder routes to currently-on-shift officers only
+    category: functional
+    severity: medium
+    given: A team with multiple officers on different shifts
+    when: A reminder fires for a scheduled check
+    then: Only officers whose shift overlaps the deadline window are notified
+    tags: [notifications, shifts, unbuilt]
+
+  # ============================================================
+  # ARM-INVITES: invite codes and team joining
+  # ============================================================
+
+  - id: ARM-INVITES-001
+    title: Admin can generate a team invite code
+    category: functional
+    severity: medium
+    given: Admin on a team page
+    when: They click Generate invite code
+    then: A short, single-use code is created and displayed
+    tags: [invites, unbuilt]
+
+  - id: ARM-INVITES-002
+    title: Invite code expires after a configurable TTL
+    category: security
+    severity: medium
+    given: A generated invite code with TTL
+    when: TTL has elapsed
+    then: The code can no longer be redeemed
+    tags: [invites, security, unbuilt]
+
+  - id: ARM-INVITES-003
+    title: Mobile-friendly invite link copies in two taps
+    category: ui
+    severity: low
+    given: An invite code displayed on mobile
+    when: User taps Copy link
+    then: The full sharable URL is on the clipboard
+    tags: [invites, mobile, unbuilt]
+
+  - id: ARM-INVITES-004
+    title: Officer can redeem an invite code to join a team
+    category: functional
+    severity: medium
+    given: An unaffiliated officer with a valid code
+    when: They submit the code on the join page
+    then: They are added to the team and see its templates
+    tags: [invites, onboarding, unbuilt]
+
+  # ============================================================
+  # ARM-CHECKLIST-VARIANTS: template archetypes
+  # ============================================================
+
+  - id: ARM-CHECKLIST-001
+    title: HOTO (HandOverTakeOver) checklist supports shift transitions
+    category: functional
+    severity: medium
+    given: A HOTO-marked template
+    when: A submission references HOTO shift transition fields
+    then: The form captures incoming and outgoing shift identifiers
+    tags: [checklist, hoto, unbuilt]
+
+  - id: ARM-CHECKLIST-002
+    title: Vehicle parade check with full history visible to team
+    category: functional
+    severity: medium
+    given: A vehicle parade template assigned to a station
+    when: Officers submit daily parade checks
+    then: All historical submissions for that vehicle are queryable
+    tags: [checklist, parade, unbuilt]
+
+  - id: ARM-CHECKLIST-003
+    title: EMS weekly Hazmat checklist
+    category: functional
+    severity: low
+    given: An EMS team with a hazmat template
+    when: Frequency is weekly
+    then: Officers see it on their weekly cadence
+    tags: [checklist, ems, hazmat, unbuilt]
+
+  - id: ARM-CHECKLIST-004
+    title: MRT shelter checklist with location-bound templates
+    category: functional
+    severity: low
+    given: An MRT shelter location with its own template
+    when: Officers at that shelter check in
+    then: They see the location-specific template
+    tags: [checklist, mrt, location, unbuilt]
+
+  # ============================================================
+  # ARM-PHOTO: real photo upload (replacing schema-only coverage)
+  # ============================================================
+
+  - id: ARM-PHOTO-001
+    title: Photo upload accepts JPEG/PNG/WEBP up to 5MB
+    category: functional
+    severity: medium
+    given: An officer on a submit page with a photo item
+    when: They select an image file under 5MB
+    then: The file is accepted and uploaded
+    tags: [photo, upload, unbuilt]
+
+  - id: ARM-PHOTO-002
+    title: Photo stored and retrievable as a stable URL
+    category: data
+    severity: medium
+    given: A submitted photo
+    when: The response is later read
+    then: valueText contains a URL or data reference that resolves to the original image
+    tags: [photo, storage, unbuilt]
+
+  - id: ARM-PHOTO-003
+    title: Photo PDF report embeds the image inline
+    category: functional
+    severity: medium
+    given: A submission with a photo response
+    when: The PDF report is generated
+    then: The image appears next to its item, not as a placeholder
+    tags: [photo, pdf, unbuilt]
+
+  # ============================================================
+  # ARM-EMAIL: actual reminder dispatch
+  # ============================================================
+
+  - id: ARM-EMAIL-001
+    title: Email reminders sent via Resend when deadline approaches
+    category: functional
+    severity: medium
+    given: A scheduled template with a deadline 2h away and team_admin email
+    when: The reminder cron runs
+    then: A Resend send is dispatched with the deadline details
+    tags: [email, resend, unbuilt]
+
+  - id: ARM-EMAIL-002
+    title: Email content includes template name, deadline, and team
+    category: data
+    severity: low
+    given: A dispatched reminder email
+    when: It is rendered
+    then: The body contains the template name, deadline timestamp, and team name
+    tags: [email, content, unbuilt]
+
+  # ============================================================
+  # ARM-EXPORT-ZIP: real zip archive
+  # ============================================================
+
+  - id: ARM-EXPORT-001
+    title: Monthly bulk export returns a ZIP archive
+    category: functional
+    severity: medium
+    given: Admin requests export for a month with N submissions
+    when: They GET the export endpoint
+    then: Response content-type is application/zip and the archive contains one JSON file per submission
+    tags: [export, zip, unbuilt]
+
+  - id: ARM-EXPORT-002
+    title: Export archive includes photo binaries inline
+    category: functional
+    severity: low
+    given: A month with photo submissions
+    when: The export is fetched
+    then: The archive includes the photo bytes alongside the response JSON
+    tags: [export, photo, unbuilt]
+
+  # ============================================================
+  # ARM-ILMS: external inventory system integration
+  # ============================================================
+
+  - id: ARM-ILMS-001
+    title: Scheduled job reconciles inventory_items with upstream feed
+    category: functional
+    severity: low
+    given: An external inventory feed URL is configured
+    when: The reconcile job runs
+    then: inventory_items.currentStock is updated from the upstream values for items with matching externalRef
+    tags: [ilms, integration, unbuilt]
+
+  - id: ARM-ILMS-002
+    title: ILMS reconcile failure surfaces as an admin issue
+    category: functional
+    severity: low
+    given: ILMS upstream is unreachable
+    when: The reconcile job fails
+    then: An issue is raised with severity=high alerting admins of the integration gap
+    tags: [ilms, alerts, unbuilt]
+
+  # ============================================================
+  # ARM-AUDIT: comprehensive audit coverage
+  # ============================================================
+
+  - id: ARM-AUDIT-001
+    title: Every admin server action writes an audit_logs entry
+    category: security
+    severity: high
+    given: Any admin action (create, edit, archive, pause, resume, unarchive template, resolve issue)
+    when: It completes
+    then: An audit_logs row is written with actor, action, target, timestamp
+    tags: [audit, coverage]
+
+  - id: ARM-AUDIT-002
+    title: Audit log captures before/after payloads for edits
+    category: security
+    severity: medium
+    given: An admin edits a template name from X to Y
+    when: The action completes
+    then: The audit_logs payload includes both X and Y
+    tags: [audit, diff, unbuilt]
+
+  - id: ARM-AUDIT-003
+    title: Audit log is immutable (insert-only, no updates or deletes from app)
+    category: security
+    severity: high
+    given: An audit_logs row
+    when: An admin attempts to edit or delete via the UI
+    then: No UI path exposes update or delete; only insert
+    tags: [audit, immutability]
+
+  # ============================================================
+  # ARM-COMPLIANCE: compliance metrics
+  # ============================================================
+
+  - id: ARM-COMPLIANCE-001
+    title: Dashboard shows compliance rate (submissions / expected)
+    category: ui
+    severity: medium
+    given: Templates with scheduled frequencies and N submissions
+    when: User opens /dashboard
+    then: A widget shows compliance percentage for the last 30 days
+    tags: [dashboard, compliance, unbuilt]
+
+  - id: ARM-COMPLIANCE-002
+    title: Non-compliant appliance identification on the per-template view
+    category: ui
+    severity: low
+    given: Multiple submissions for a vehicle template with scores below 80
+    when: Admin views the per-template breakdown
+    then: Underperforming items or vehicles are flagged
+    tags: [dashboard, compliance, unbuilt]
+
+  # ============================================================
+  # ARM-UX: detailed UX guarantees
+  # ============================================================
+
+  - id: ARM-UX-001
+    title: In-the-moment error banner when submission validation fails server-side
+    category: ui
+    severity: medium
+    given: An officer submits with a required field empty
+    when: The server rejects it
+    then: A banner explains which field is missing without losing the rest of the form
+    tags: [ux, errors, unbuilt]
+
+  - id: ARM-UX-002
+    title: Forced refresh banner when a breaking app update has shipped
+    category: ui
+    severity: low
+    given: A new app version is deployed while user is on a stale tab
+    when: The page detects a version mismatch
+    then: A banner prompts a hard refresh to load the new version
+    tags: [ux, versioning, unbuilt]
+
+  - id: ARM-UX-003
+    title: Tab views on submission detail (Status / About)
+    category: ui
+    severity: low
+    given: A submission detail page
+    when: It renders
+    then: Two tab views are available, a Status tab showing pass or fail items, and an About tab showing template metadata
+    tags: [ux, submission-detail, unbuilt]
+
+  - id: ARM-UX-004
+    title: Condensed view toggle on long checklists
+    category: ui
+    severity: low
+    given: A template with 30 or more items
+    when: Officer toggles condensed view
+    then: Items render in a denser grid with smaller controls
+    tags: [ux, density, unbuilt]
