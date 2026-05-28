@@ -3,10 +3,17 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { submissions, responses, issues, templateItems, templates, teams } from "@/db/schema";
+import {
+  submissions,
+  responses,
+  issues,
+  templateItems,
+  templates,
+  teams,
+  skippedChecks,
+} from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
 import { computeScore } from "@/lib/score";
 
@@ -226,4 +233,53 @@ export async function resolveIssue(formData: FormData) {
 
   revalidatePath("/admin/issues");
   redirect("/admin/issues");
+}
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const skipSchema = z.object({
+  templateId: z.string().uuid(),
+  reason: z.string().min(3).max(500),
+});
+
+export async function skipCheck(formData: FormData) {
+  const officer = await requireOfficer();
+  const parsed = skipSchema.safeParse({
+    templateId: formData.get("templateId"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) throw new Error("Invalid input: " + parsed.error.message);
+
+  await db.insert(skippedChecks).values({
+    officerId: officer.id,
+    templateId: parsed.data.templateId,
+    skippedFor: todayISO(),
+    reason: parsed.data.reason,
+  });
+
+  revalidatePath("/officer");
+  redirect("/officer");
+}
+
+const unskipSchema = z.object({ templateId: z.string().uuid() });
+
+export async function unskipCheck(formData: FormData) {
+  const officer = await requireOfficer();
+  const parsed = unskipSchema.safeParse({
+    templateId: formData.get("templateId"),
+  });
+  if (!parsed.success) throw new Error("Invalid input");
+
+  await db
+    .delete(skippedChecks)
+    .where(
+      and(
+        eq(skippedChecks.officerId, officer.id),
+        eq(skippedChecks.templateId, parsed.data.templateId),
+        eq(skippedChecks.skippedFor, todayISO()),
+      ),
+    );
+
+  revalidatePath("/officer");
+  redirect("/officer");
 }

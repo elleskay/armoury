@@ -196,6 +196,29 @@ export const responsesRelations = relations(responses, ({ one }) => ({
   }),
 }));
 
+export const skippedChecks = pgTable(
+  "skipped_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    officerId: uuid("officer_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    templateId: uuid("template_id")
+      .references(() => templates.id, { onDelete: "cascade" })
+      .notNull(),
+    skippedFor: varchar("skipped_for", { length: 10 }).notNull(),
+    reason: varchar("reason", { length: 500 }).notNull(),
+    skippedAt: timestamp("skipped_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("skipped_officer_idx").on(t.officerId),
+    index("skipped_template_idx").on(t.templateId),
+    index("skipped_for_idx").on(t.skippedFor),
+  ],
+);
+
+export type SkippedCheck = typeof skippedChecks.$inferSelect;
+
 export const auditLogs = pgTable(
   "audit_logs",
   {

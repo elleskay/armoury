@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { db } from "@/db/client";
-import { templates, teams, submissions, users } from "@/db/schema";
+import { templates, teams, submissions, users, skippedChecks } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -71,6 +71,21 @@ export default async function OfficerHome() {
     )
     .orderBy(templates.name);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const skippedToday = new Set(
+    (
+      await db
+        .select({ templateId: skippedChecks.templateId })
+        .from(skippedChecks)
+        .where(
+          and(
+            eq(skippedChecks.officerId, me.id),
+            eq(skippedChecks.skippedFor, today),
+          ),
+        )
+    ).map((r) => r.templateId),
+  );
+
   const recent = await db
     .select({
       id: submissions.id,
@@ -102,7 +117,7 @@ export default async function OfficerHome() {
         </Button>
       </div>
 
-      {myTemplates.length === 0 ? (
+      {myTemplates.filter((t) => !skippedToday.has(t.id)).length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="No checklists assigned"
@@ -110,27 +125,33 @@ export default async function OfficerHome() {
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {myTemplates.map((t) => {
+          {myTemplates.filter((t) => !skippedToday.has(t.id)).map((t) => {
             const shift = shiftMeta[t.shiftWindow] ?? shiftMeta.any;
             const ShiftIcon = shift.icon;
             return (
-              <Link key={t.id} href={`/officer/submit/${t.id}`} className="block">
-                <Card className="group flex h-full flex-col gap-3 p-5 transition-colors hover:border-primary/50 hover:bg-accent/40">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <ClipboardList className="h-4 w-4" />
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+              <Card
+                key={t.id}
+                className="group flex h-full flex-col gap-3 p-5 transition-colors hover:border-primary/50"
+              >
+                <Link
+                  href={`/officer/submit/${t.id}`}
+                  className="flex items-start justify-between gap-3"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ClipboardList className="h-4 w-4" />
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="font-medium leading-tight">{t.name}</div>
-                    {t.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {t.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="mt-auto flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </Link>
+                <Link href={`/officer/submit/${t.id}`} className="space-y-1.5">
+                  <div className="font-medium leading-tight">{t.name}</div>
+                  {t.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {t.description}
+                    </p>
+                  )}
+                </Link>
+                <div className="mt-auto flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <Badge variant="secondary" className="gap-1 text-xs">
                       <Clock className="h-3 w-3" />
                       {frequencyLabels[t.frequency] ?? t.frequency}
@@ -145,10 +166,36 @@ export default async function OfficerHome() {
                       </Badge>
                     )}
                   </div>
-                </Card>
-              </Link>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/officer/skip/${t.id}`}>Skip</Link>
+                  </Button>
+                </div>
+              </Card>
             );
           })}
+        </div>
+      )}
+
+      {myTemplates.filter((t) => skippedToday.has(t.id)).length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">Skipped today</h2>
+          <Card className="p-4">
+            <ul className="space-y-2">
+              {myTemplates.filter((t) => skippedToday.has(t.id)).map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span>{t.name}</span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/officer/skip/${t.id}?action=unskip`}>
+                      Unskip
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
       )}
 
