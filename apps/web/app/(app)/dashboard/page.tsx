@@ -45,6 +45,41 @@ export default async function DashboardPage() {
     })
     .from(submissions);
 
+  // Compliance: count submissions in last 30 days against EXPECTED.
+  // Expected calc is approximate: daily=30, twice_daily=60, weekly=4 per template.
+  const last30 = new Date();
+  last30.setDate(last30.getDate() - 30);
+  const scheduledTemplates = await db
+    .select({
+      id: templates.id,
+      frequency: templates.frequency,
+    })
+    .from(templates)
+    .where(eq(templates.status, "published"));
+  const expectedPer = (freq: string): number => {
+    switch (freq) {
+      case "daily":
+        return 30;
+      case "twice_daily":
+        return 60;
+      case "weekly":
+        return 4;
+      default:
+        return 0;
+    }
+  };
+  const expectedTotal = scheduledTemplates.reduce(
+    (sum, t) => sum + expectedPer(t.frequency),
+    0,
+  );
+  const last30Subs = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(submissions)
+    .where(gte(submissions.submittedAt, last30));
+  const actual = last30Subs[0]?.total ?? 0;
+  const complianceRate =
+    expectedTotal === 0 ? 100 : Math.min(100, Math.round((actual / expectedTotal) * 100));
+
   const recent = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(submissions)
@@ -111,7 +146,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Dashboard" description={`Welcome back, ${user.name}.`} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Total submissions"
           value={total}
@@ -130,6 +165,13 @@ export default async function DashboardPage() {
           icon={ShieldCheck}
           tone={avgScore >= 90 ? "success" : avgScore >= 70 ? "info" : "alert"}
           hint={`${totals[0]?.perfectCount ?? 0} perfect submissions`}
+        />
+        <StatCard
+          label="Compliance rate"
+          value={`${complianceRate}%`}
+          icon={ShieldCheck}
+          tone={complianceRate >= 90 ? "success" : complianceRate >= 70 ? "info" : "alert"}
+          hint={`${actual} of ${expectedTotal} expected (last 30 days)`}
         />
         <StatCard
           label="Open issues"
