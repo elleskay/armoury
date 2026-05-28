@@ -121,6 +121,14 @@ export async function createTemplate(formData: FormData) {
     })),
   );
 
+  await recordAudit(admin.id, "template.create", "template", created.id, {
+    name: data.name,
+    status: data.status,
+    frequency: data.frequency,
+    shiftWindow: data.shiftWindow,
+    itemCount: data.items.length,
+  });
+
   revalidatePath("/admin/templates");
   redirect("/admin/templates");
 }
@@ -161,7 +169,7 @@ const updateTemplateSchema = z.object({
 });
 
 export async function updateTemplate(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const teamIdRaw = formData.get("teamId");
   const teamIdNormalized =
@@ -184,6 +192,12 @@ export async function updateTemplate(formData: FormData) {
   }
   const data = parsed.data;
 
+  const [before] = await db
+    .select()
+    .from(templates)
+    .where(eq(templates.id, data.templateId))
+    .limit(1);
+
   await db
     .update(templates)
     .set({
@@ -197,13 +211,34 @@ export async function updateTemplate(formData: FormData) {
     })
     .where(eq(templates.id, data.templateId));
 
+  await recordAudit(admin.id, "template.update", "template", data.templateId, {
+    before: before
+      ? {
+          name: before.name,
+          description: before.description,
+          teamId: before.teamId,
+          status: before.status,
+          frequency: before.frequency,
+          shiftWindow: before.shiftWindow,
+        }
+      : null,
+    after: {
+      name: data.name,
+      description: data.description ?? null,
+      teamId: data.teamId ?? null,
+      status: data.status,
+      frequency: data.frequency,
+      shiftWindow: data.shiftWindow,
+    },
+  });
+
   revalidatePath("/admin/templates");
   revalidatePath("/officer");
   redirect("/admin/templates");
 }
 
 export async function pauseTemplate(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = templateIdSchema.safeParse({
     templateId: formData.get("templateId"),
   });
@@ -214,12 +249,14 @@ export async function pauseTemplate(formData: FormData) {
     .set({ schedulePausedAt: new Date() })
     .where(eq(templates.id, parsed.data.templateId));
 
+  await recordAudit(admin.id, "template.pause", "template", parsed.data.templateId);
+
   revalidatePath("/admin/templates");
   revalidatePath("/officer");
 }
 
 export async function resumeTemplate(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = templateIdSchema.safeParse({
     templateId: formData.get("templateId"),
   });
@@ -230,12 +267,14 @@ export async function resumeTemplate(formData: FormData) {
     .set({ schedulePausedAt: null })
     .where(eq(templates.id, parsed.data.templateId));
 
+  await recordAudit(admin.id, "template.resume", "template", parsed.data.templateId);
+
   revalidatePath("/admin/templates");
   revalidatePath("/officer");
 }
 
 export async function unarchiveTemplate(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = templateIdSchema.safeParse({
     templateId: formData.get("templateId"),
   });
@@ -245,6 +284,8 @@ export async function unarchiveTemplate(formData: FormData) {
     .update(templates)
     .set({ archivedAt: null })
     .where(eq(templates.id, parsed.data.templateId));
+
+  await recordAudit(admin.id, "template.unarchive", "template", parsed.data.templateId);
 
   revalidatePath("/admin/templates");
   revalidatePath("/officer");

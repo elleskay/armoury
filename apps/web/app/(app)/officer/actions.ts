@@ -13,6 +13,7 @@ import {
   templates,
   teams,
   skippedChecks,
+  auditLogs,
 } from "@/db/schema";
 import { requireOfficer } from "@/lib/session";
 import { computeScore } from "@/lib/score";
@@ -234,6 +235,18 @@ export async function resolveIssue(formData: FormData) {
       resolution: parsed.data.resolution,
     })
     .where(eq(issues.id, parsed.data.issueId));
+
+  try {
+    await db.insert(auditLogs).values({
+      actorId: officer.id,
+      action: "issue.resolve",
+      targetType: "issue",
+      targetId: parsed.data.issueId,
+      payload: { resolution: parsed.data.resolution },
+    });
+  } catch {
+    // best-effort
+  }
 
   revalidatePath("/admin/issues");
   redirect("/admin/issues");
