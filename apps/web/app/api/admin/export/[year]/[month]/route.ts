@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, eq, gte, lt, desc } from "drizzle-orm";
+import JSZip from "jszip";
 import { db } from "@/db/client";
 import {
   submissions,
@@ -9,35 +10,6 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
-
-interface ExportItem {
-  id: string;
-  position: number;
-  label: string;
-  kind: string;
-}
-
-interface ExportResponse {
-  itemId: string;
-  valueBoolean: boolean | null;
-  valueText: string | null;
-  valueNumber: number | null;
-  valueDate: string | null;
-  hasIssue: boolean;
-  issueNote: string | null;
-}
-
-interface ExportSubmission {
-  id: string;
-  submittedAt: string;
-  officer: string;
-  template: string;
-  score: number;
-  okCount: number;
-  itemCount: number;
-  items: ExportItem[];
-  responses: ExportResponse[];
-}
 
 export async function GET(
   _req: Request,
@@ -77,7 +49,20 @@ export async function GET(
     .orderBy(desc(submissions.submittedAt))
     .limit(5000);
 
-  const result: ExportSubmission[] = [];
+  const zip = new JSZip();
+  zip.file(
+    "manifest.json",
+    JSON.stringify(
+      {
+        month: `${y}-${String(m).padStart(2, "0")}`,
+        count: rows.length,
+        generatedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
+
   for (const row of rows) {
     const items = await db
       .select({
@@ -94,7 +79,7 @@ export async function GET(
       .from(responses)
       .where(eq(responses.submissionId, row.id));
 
-    result.push({
+    const payload = {
       id: row.id,
       submittedAt: row.submittedAt.toISOString(),
       officer: row.officerName,
@@ -105,6 +90,8 @@ export async function GET(
       items,
       responses: responseRows.map((r) => ({
         itemId: r.templateItemId,
+        itemLabelSnapshot: r.itemLabelSnapshot,
+        itemKindSnapshot: r.itemKindSnapshot,
         valueBoolean: r.valueBoolean,
         valueText: r.valueText,
         valueNumber: r.valueNumber,
@@ -112,18 +99,19 @@ export async function GET(
         hasIssue: r.hasIssue,
         issueNote: r.issueNote,
       })),
-    });
+    };
+    const fileName = `${row.submittedAt.toISOString().replace(/[:.]/g, "-")}__${row.templateName.replace(/[^a-z0-9-]+/gi, "_")}__${row.id.slice(0, 8)}.json`;
+    zip.file(fileName, JSON.stringify(payload, null, 2));
   }
 
-  const filename = `armoury-export-${year}-${month.padStart(2, "0")}.json`;
-  return new NextResponse(
-    JSON.stringify({ month: `${y}-${String(m).padStart(2, "0")}`, count: result.length, submissions: result }, null, 2),
-    {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-        "content-disposition": `attachment; filename="${filename}"`,
-      },
+  const buffer = await zip.generateAsync({ type: "uint8array" });
+  const filename = `armoury-export-${y}-${String(m).padStart(2, "0")}.zip`;
+  return new NextResponse(buffer as unknown as BodyInit, {
+    status: 200,
+    headers: {
+      "content-type": "application/zip",
+      "content-disposition": `attachment; filename="${filename}"`,
+      "content-length": String(buffer.length),
     },
-  );
+  });
 }

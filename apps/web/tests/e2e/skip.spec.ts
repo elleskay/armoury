@@ -13,6 +13,26 @@ test("[ARM-SCHED-007] Cron endpoint reports upcoming reminders", async ({
   expect(body.timestamp).toMatch(/\d{4}-\d{2}-\d{2}T/);
 });
 
+test("[ARM-EMAIL-001] Cron route reports attempted/sent/skipped for Resend dispatch", async ({
+  page,
+}) => {
+  const response = await page.request.get("/api/cron/reminders");
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(typeof body.attempted).toBe("number");
+  expect(typeof body.sent).toBe("number");
+  expect(typeof body.skipped).toBe("boolean");
+  expect(body.skipped).toBe(true);
+});
+
+test("[ARM-EMAIL-002] Reminder route returns at least one would-remind in the seed", async ({
+  page,
+}) => {
+  const response = await page.request.get("/api/cron/reminders");
+  const body = await response.json();
+  expect(body.wouldRemind).toBeGreaterThan(0);
+});
+
 test("[ARM-SCHED-005] Officer can skip a check with a reason", async ({
   page,
 }) => {
