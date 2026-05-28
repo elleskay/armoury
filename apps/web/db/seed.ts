@@ -209,6 +209,40 @@ async function main() {
     { templateId: tmpl6.id, position: 3, label: "Emergency exits clear", kind: "boolean" },
   ]);
 
+  // Inventory items for Pulse module
+  await db.insert(schema.inventoryItems).values([
+    {
+      teamId: team1.id,
+      name: "Adrenaline 1mg",
+      category: "drug",
+      unit: "vial",
+      currentStock: 24,
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+      lastStockTakeAt: new Date(),
+      externalRef: "ILMS-DRUG-1001",
+    },
+    {
+      teamId: team1.id,
+      name: "Oxygen tank D-size",
+      category: "consumable",
+      unit: "tank",
+      currentStock: 8,
+      expiresAt: null,
+      lastStockTakeAt: new Date(),
+      externalRef: "ILMS-CONS-2034",
+    },
+    {
+      teamId: team3.id,
+      name: "Suction catheter 14Fr",
+      category: "disposable",
+      unit: "each",
+      currentStock: 42,
+      expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      lastStockTakeAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      externalRef: "ILMS-DISP-3127",
+    },
+  ]);
+
   await pool.end();
   console.warn("Seed complete.");
   console.warn("Admin login: admin@armoury.test / password123");
