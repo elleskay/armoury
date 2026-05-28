@@ -10,9 +10,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  // Parallel workers. Default ~50% CPU. Tests that mutate global state
-  // are grouped via test.describe.serial in their own files.
-  workers: process.env.CI ? 4 : undefined,
+  // Parallel workers. 2 in CI keeps the single 'next start' process
+  // responsive without saturating; locally default to CPU/2.
+  // workers=4 overwhelmed the test server and caused 30s timeouts.
+  workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI
     ? [["list"], ["html", { open: "never" }]]
     : [["list"]],
