@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, CheckCircle2, XCircle, Save } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Save, Rows3, Rows2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -59,6 +59,7 @@ export function ChecklistSearch({
 }: ChecklistSearchProps) {
   const [query, setQuery] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [dense, setDense] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const q = query.trim().toLowerCase();
 
@@ -152,6 +153,20 @@ export function ChecklistSearch({
             <Save className="mr-1 h-3.5 w-3.5" />
             Save draft
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setDense((d) => !d)}
+            aria-label={dense ? "Roomy view" : "Condensed view"}
+          >
+            {dense ? (
+              <Rows3 className="mr-1 h-3.5 w-3.5" />
+            ) : (
+              <Rows2 className="mr-1 h-3.5 w-3.5" />
+            )}
+            {dense ? "Roomy" : "Condensed"}
+          </Button>
         </div>
       </div>
       {savedAt && (
@@ -159,7 +174,11 @@ export function ChecklistSearch({
           Draft saved at {savedAt}
         </p>
       )}
-      <div className="space-y-6">
+      <div
+        className={dense ? "space-y-2" : "space-y-6"}
+        data-testid="checklist-items"
+        data-density={dense ? "condensed" : "roomy"}
+      >
         {(Array.isArray(children) ? children : [children]).map((child, idx) => {
           const label = (labels[idx] ?? "").toLowerCase();
           const visible = q.length === 0 || label.includes(q);

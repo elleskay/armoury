@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { FileCheck2 } from "lucide-react";
 
@@ -67,9 +68,21 @@ export default async function SubmissionsPage() {
               {rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="text-muted-foreground">
-                    {row.submittedAt.toISOString().replace("T", " ").slice(0, 16)}
+                    <Link
+                      href={`/admin/submissions/${row.id}`}
+                      className="hover:underline"
+                    >
+                      {row.submittedAt.toISOString().replace("T", " ").slice(0, 16)}
+                    </Link>
                   </TableCell>
-                  <TableCell className="font-medium">{row.templateName}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/admin/submissions/${row.id}`}
+                      className="hover:underline"
+                    >
+                      {row.templateName}
+                    </Link>
+                  </TableCell>
                   <TableCell>{row.officerName}</TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">
                     {row.okCount} / {row.itemCount}
