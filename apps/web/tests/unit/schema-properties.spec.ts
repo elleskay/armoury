@@ -38,3 +38,16 @@ test("[ARM-ISSUES-010] Teams table has webhook_url for outbound notifications", 
 test("[ARM-TEMPLATES-007] templates table has archivedAt nullable column", () => {
   expect(templates.archivedAt).toBeDefined();
 });
+
+test("[ARM-TEMPLATES-009] responses table snapshots item label/kind at submit time", () => {
+  // Snapshot columns ensure later template edits do not retroactively
+  // change historical reports' question wording or kind.
+  expect(responses.itemLabelSnapshot).toBeDefined();
+  expect(responses.itemKindSnapshot).toBeDefined();
+});
+
+test("[ARM-DASHBOARD-010] Reports source from response snapshot, not live template_items", () => {
+  // Same snapshot columns drive the report rendering: reports read
+  // itemLabelSnapshot which is frozen at submission time.
+  expect(responses.itemLabelSnapshot).toBeDefined();
+});

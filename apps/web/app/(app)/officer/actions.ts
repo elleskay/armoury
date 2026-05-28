@@ -78,6 +78,8 @@ export async function submitChecklist(formData: FormData) {
     valueDate: Date | null;
     hasIssue: boolean;
     issueNote: string | null;
+    itemLabelSnapshot: string;
+    itemKindSnapshot: string;
   }[] = [];
 
   let okCount = 0;
@@ -124,6 +126,8 @@ export async function submitChecklist(formData: FormData) {
       valueDate,
       hasIssue,
       issueNote: noteStr,
+      itemLabelSnapshot: item.label,
+      itemKindSnapshot: item.kind,
     });
   }
 

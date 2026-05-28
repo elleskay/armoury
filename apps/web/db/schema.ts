@@ -128,6 +128,10 @@ export const responses = pgTable(
     valueDate: timestamp("value_date", { withTimezone: true }),
     hasIssue: boolean("has_issue").notNull().default(false),
     issueNote: text("issue_note"),
+    // Snapshots at submission time so later template edits do not
+    // retroactively change historical reports.
+    itemLabelSnapshot: varchar("item_label_snapshot", { length: 300 }),
+    itemKindSnapshot: varchar("item_kind_snapshot", { length: 30 }),
   },
   (t) => [index("responses_submission_idx").on(t.submissionId)],
 );
