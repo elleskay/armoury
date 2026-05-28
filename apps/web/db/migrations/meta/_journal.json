@@ -43,6 +43,13 @@
       "when": 1779976100154,
       "tag": "0005_blushing_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779976281924,
+      "tag": "0006_fast_black_queen",
+      "breakpoints": true
     }
   ]
 }

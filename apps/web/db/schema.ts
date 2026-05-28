@@ -224,6 +224,57 @@ export const skippedChecks = pgTable(
 
 export type SkippedCheck = typeof skippedChecks.$inferSelect;
 
+export const inventoryItems = pgTable(
+  "inventory_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id").references(() => teams.id, { onDelete: "set null" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    category: varchar("category", { length: 100 }),
+    unit: varchar("unit", { length: 40 }).notNull().default("each"),
+    currentStock: integer("current_stock").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastStockTakeAt: timestamp("last_stock_take_at", { withTimezone: true }),
+    externalRef: varchar("external_ref", { length: 100 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("inventory_team_idx").on(t.teamId),
+    index("inventory_expires_idx").on(t.expiresAt),
+    index("inventory_external_ref_idx").on(t.externalRef),
+  ],
+);
+
+export const inventoryTransactionType = pgEnum("inventory_transaction_type", [
+  "stock_take",
+  "adjustment",
+  "withdrawal",
+  "delivery",
+]);
+
+export const inventoryTransactions = pgTable(
+  "inventory_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    itemId: uuid("item_id")
+      .references(() => inventoryItems.id, { onDelete: "cascade" })
+      .notNull(),
+    delta: integer("delta").notNull(),
+    type: inventoryTransactionType("type").notNull(),
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("inventory_tx_item_idx").on(t.itemId),
+    index("inventory_tx_created_idx").on(t.createdAt),
+  ],
+);
+
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
+
 export const auditLogs = pgTable(
   "audit_logs",
   {
